@@ -1,0 +1,88 @@
+[package]
+name = "system-analysis"
+version = "0.1.0"
+edition = "2024"
+authors = ["Eric Evans <ciresnave@gmail.com>"]
+description = "A comprehensive Rust library for analyzing system capabilities, workload requirements, and optimal resource allocation"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/ciresnave/system-analysis"
+documentation = "https://docs.rs/system-analysis"
+homepage = "https://github.com/ciresnave/system-analysis"
+keywords = ["system", "analysis", "hardware", "workload", "performance"]
+categories = ["hardware-support", "development-tools", "science"]
+readme = "README.md"
+rust-version = "1.85"
+exclude = [
+    "target/*",
+    "Cargo.lock",
+    ".git/*",
+    ".github/*",
+    ".vscode/*",
+    ".idea/*",
+    "*.tmp",
+    "*.bak",
+    "*.backup",
+    "*.orig",
+    "*.log",
+    ".DS_Store",
+    "Thumbs.db",
+    ".env*"
+]
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Numeric operations
+num-traits = "0.2"
+
+# Parallel computation
+rayon = "1.7"
+
+# Concurrent data structures
+dashmap = "5.5"
+
+# Logging and diagnostics
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# System information
+sysinfo = "0.32"
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Configuration
+config = "0.14"
+
+# Optional GPU detection (feature-gated)
+nvml-wrapper = { version = "0.9", optional = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+pretty_assertions = "1.4"
+tempfile = "3.8"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[features]
+default = []
+gpu-detection = ["nvml-wrapper"]
+
+[[example]]
+name = "basic_analysis"
+path = "examples/basic_analysis.rs"
+
+[[example]]
+name = "ai_workload_analysis"
+path = "examples/ai_workload_analysis.rs"
+[[bench]]
+name = "benchmark"
+harness = false
