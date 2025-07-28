@@ -3,7 +3,7 @@
 use system_analysis::{
     SystemAnalyzer, WorkloadRequirements, 
     resources::{ResourceRequirement, ResourceType, CapabilityLevel},
-    workloads::{AIInferenceWorkload, ModelParameters, Workload},
+    workloads::{AIInferenceWorkload, ModelParameters, Workload, WorkloadType},
 };
 
 #[tokio::test]
@@ -113,8 +113,8 @@ async fn test_resource_utilization_prediction() {
     assert!(utilization.is_ok());
     
     let util_result = utilization.unwrap();
-    assert!(util_result.cpu_percent() >= 0.0 && util_result.cpu_percent() <= 100.0);
-    assert!(util_result.memory_percent() >= 0.0 && util_result.memory_percent() <= 100.0);
+    assert!(util_result.cpu_percent >= 0.0 && util_result.cpu_percent <= 100.0);
+    assert!(util_result.memory_percent >= 0.0 && util_result.memory_percent <= 100.0);
 }
 
 #[test]
@@ -141,10 +141,10 @@ fn test_workload_requirements_clone() {
         .parameters(1_000_000_000)
         .memory_required(4.0);
     
-    let workload = AIInferenceWorkload::new(model_params);
+    let _workload = AIInferenceWorkload::new(model_params);
     
     let mut requirements = WorkloadRequirements::new("clone-test");
-    requirements.set_workload(Box::new(workload));
+    requirements.workload = Some(WorkloadType::AIInference);
     
     // Test that cloning works
     let cloned = requirements.clone();

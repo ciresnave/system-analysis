@@ -1,5 +1,5 @@
 use system_analysis::{SystemAnalyzer, WorkloadRequirements};
-use system_analysis::workloads::{AIInferenceWorkload, ModelParameters, QuantizationLevel, Workload};
+use system_analysis::workloads::{AIInferenceWorkload, ModelParameters, QuantizationLevel, Workload, WorkloadType};
 use system_analysis::types::WorkloadPriority;
 
 #[tokio::main]
@@ -42,7 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     for (model_name, params, memory_gb, quantization) in models {
-        println!("--- Testing {} ---", model_name);
+        println!("--- Testing {model_name} ---");
         
         // Create model parameters
         let model_params = ModelParameters::new()
@@ -58,32 +58,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let ai_workload = AIInferenceWorkload::new(model_params);
 
         // Create workload requirements
-        let mut workload_requirements = WorkloadRequirements::new(
-            format!("{}-inference", model_name.replace(" ", "-").to_lowercase())
-        );
+        let workload_name = format!("{}-inference", model_name.replace(" ", "-").to_lowercase());
+        let mut workload_requirements = WorkloadRequirements::new(&workload_name);
         
         // Add resource requirements from the workload
         for req in ai_workload.resource_requirements() {
             workload_requirements.add_resource_requirement(req);
         }
         
-        workload_requirements.set_workload(Box::new(ai_workload));
-        workload_requirements.set_priority(WorkloadPriority::High);
+        workload_requirements.workload = Some(WorkloadType::AIInference);
+        workload_requirements.priority = WorkloadPriority::High;
 
         // Check compatibility
         let compatibility = analyzer.check_compatibility(&system_profile, &workload_requirements)?;
         
-        println!("  Compatibility: {}", if compatibility.is_compatible() { "✓ Compatible" } else { "✗ Not Compatible" });
-        println!("  Score: {:.1}/10", compatibility.score());
-        println!("  Performance: {}", compatibility.performance_estimate());
+        println!("  Compatibility: {}", if compatibility.is_compatible { "✓ Compatible" } else { "✗ Not Compatible" });
+        println!("  Score: {:.1}/10", compatibility.score);
+        println!("  Performance: {:?}", compatibility.performance_estimate);
         
-        if !compatibility.missing_requirements().is_empty() {
+        if !compatibility.missing_requirements.is_empty() {
             println!("  Missing requirements:");
-            for missing in compatibility.missing_requirements() {
+            for missing in &compatibility.missing_requirements {
                 println!("    - {}: need {}, have {}", 
-                    missing.resource_type(), 
-                    missing.required(), 
-                    missing.available()
+                    missing.resource_type, 
+                    missing.required, 
+                    missing.available
                 );
             }
         }
@@ -91,9 +90,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Get resource utilization prediction
         let utilization = analyzer.predict_utilization(&system_profile, &workload_requirements)?;
         println!("  Resource utilization:");
-        println!("    CPU: {:.1}%", utilization.cpu_percent());
-        println!("    GPU: {:.1}%", utilization.gpu_percent());
-        println!("    Memory: {:.1}%", utilization.memory_percent());
+        println!("    CPU: {:.1}%", utilization.cpu_percent);
+        println!("    GPU: {:.1}%", utilization.gpu_percent);
+        println!("    Memory: {:.1}%", utilization.memory_percent);
 
         // Check for bottlenecks
         if !compatibility.bottlenecks.is_empty() {
@@ -121,7 +120,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for req in demanding_workload.resource_requirements() {
         demanding_requirements.add_resource_requirement(req);
     }
-    demanding_requirements.set_workload(Box::new(demanding_workload));
+    demanding_requirements.workload = Some(WorkloadType::AITraining);
 
     let upgrades = analyzer.recommend_upgrades(&system_profile, &demanding_requirements)?;
     
@@ -130,8 +129,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         println!("Recommended upgrades:");
         for upgrade in upgrades {
-            println!("  - {}: {}", upgrade.resource_type(), upgrade.recommendation());
-            println!("    Expected improvement: {}", upgrade.estimated_improvement());
+            println!("  - {}: {}", upgrade.resource_type, upgrade.recommendation);
+            println!("    Expected improvement: {}", upgrade.estimated_improvement);
             println!("    Priority: {:?}", upgrade.priority);
         }
     }
@@ -140,16 +139,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let optimal_config = analyzer.find_optimal_configuration(&demanding_requirements)?;
     
     println!("For optimal AI inference performance:");
-    println!("  CPU: {}", optimal_config.cpu_recommendation());
-    println!("  GPU: {}", optimal_config.gpu_recommendation());
-    println!("  Memory: {}", optimal_config.memory_recommendation());
-    println!("  Storage: {}", optimal_config.storage_recommendation());
-    println!("  Network: {}", optimal_config.network_recommendation());
+    println!("  CPU: {}", optimal_config.cpu_recommendation);
+    println!("  GPU: {}", optimal_config.gpu_recommendation.as_deref().unwrap_or("Not required"));
+    println!("  Memory: {}", optimal_config.memory_recommendation);
+    println!("  Storage: {}", optimal_config.storage_recommendation);
+    println!("  Network: {}", optimal_config.network_recommendation);
     
     if let Some(cost) = &optimal_config.total_cost {
         println!("  Estimated cost: ${:.0} - ${:.0} {}", 
-            cost.min_cost, 
-            cost.max_cost, 
+            cost.min_cost_usd, 
+            cost.max_cost_usd, 
             cost.currency
         );
     }

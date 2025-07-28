@@ -325,7 +325,7 @@ impl ConfigValidator {
             if let Err(e) = workload.validate() {
                 issues.push(ValidationIssue {
                     severity: ValidationSeverity::Error,
-                    message: format!("Workload validation failed: {}", e),
+                    message: format!("Workload validation failed: {e}"),
                     suggestion: "Fix workload configuration".to_string(),
                 });
             }
@@ -348,10 +348,10 @@ impl ConfigValidator {
         ];
 
         for (name, score) in scores {
-            if score < 0.0 || score > 10.0 {
+            if !(0.0..=10.0).contains(&score) {
                 issues.push(ValidationIssue {
                     severity: ValidationSeverity::Error,
-                    message: format!("Invalid {} score: {:.1} (should be 0-10)", name, score),
+                    message: format!("Invalid {name} score: {score:.1} (should be 0-10)"),
                     suggestion: "Recalibrate scoring algorithm".to_string(),
                 });
             }
@@ -362,7 +362,7 @@ impl ConfigValidator {
         if memory_gb > 1000.0 {
             issues.push(ValidationIssue {
                 severity: ValidationSeverity::Warning,
-                message: format!("Very high memory amount detected: {:.1}GB", memory_gb),
+                message: format!("Very high memory amount detected: {memory_gb:.1}GB"),
                 suggestion: "Verify memory detection is accurate".to_string(),
             });
         }
@@ -600,12 +600,12 @@ pub mod common {
     pub fn format_resource_amount(amount: &ResourceAmount) -> String {
         match amount {
             ResourceAmount::Level(level) => capability_level_to_string(*level).to_string(),
-            ResourceAmount::Gigabytes(gb) => format!("{:.1} GB", gb),
-            ResourceAmount::Megahertz(mhz) => format!("{:.0} MHz", mhz),
-            ResourceAmount::Score(score) => format!("{:.1}/10", score),
-            ResourceAmount::Units(units) => format!("{} units", units),
-            ResourceAmount::Percentage(pct) => format!("{:.1}%", pct),
-            ResourceAmount::Custom { value, unit } => format!("{:.1} {}", value, unit),
+            ResourceAmount::Gigabytes(gb) => format!("{gb:.1} GB"),
+            ResourceAmount::Megahertz(mhz) => format!("{mhz:.0} MHz"),
+            ResourceAmount::Score(score) => format!("{score:.1}/10"),
+            ResourceAmount::Units(units) => format!("{units} units"),
+            ResourceAmount::Percentage(pct) => format!("{pct:.1}%"),
+            ResourceAmount::Custom { value, unit } => format!("{value:.1} {unit}"),
         }
     }
 

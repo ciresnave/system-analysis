@@ -28,7 +28,7 @@ impl fmt::Display for ResourceType {
             ResourceType::Memory => write!(f, "Memory"),
             ResourceType::Storage => write!(f, "Storage"),
             ResourceType::Network => write!(f, "Network"),
-            ResourceType::Custom(id) => write!(f, "Custom({})", id),
+            ResourceType::Custom(id) => write!(f, "Custom({id})"),
         }
     }
 }
@@ -218,7 +218,7 @@ impl ResourceRequirement {
     /// Set GPU memory requirement
     pub fn gpu_memory_gb(self, gb: f64) -> Self {
         // For GPU memory we can use a custom constraint
-        self.add_constraint(ResourceConstraint::RequiredFeature(format!("GPU Memory: {} GB", gb)))
+        self.add_constraint(ResourceConstraint::RequiredFeature(format!("GPU Memory: {gb} GB")))
     }
     
     /// Set storage type
@@ -284,13 +284,13 @@ pub enum ResourceAmount {
 impl fmt::Display for ResourceAmount {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ResourceAmount::Level(level) => write!(f, "{}", level),
-            ResourceAmount::Gigabytes(gb) => write!(f, "{:.1} GB", gb),
-            ResourceAmount::Megahertz(mhz) => write!(f, "{:.0} MHz", mhz),
-            ResourceAmount::Score(score) => write!(f, "{:.1}/10", score),
-            ResourceAmount::Units(units) => write!(f, "{} units", units),
-            ResourceAmount::Percentage(pct) => write!(f, "{:.1}%", pct),
-            ResourceAmount::Custom { value, unit } => write!(f, "{:.1} {}", value, unit),
+            ResourceAmount::Level(level) => write!(f, "{level}"),
+            ResourceAmount::Gigabytes(gb) => write!(f, "{gb:.1} GB"),
+            ResourceAmount::Megahertz(mhz) => write!(f, "{mhz:.0} MHz"),
+            ResourceAmount::Score(score) => write!(f, "{score:.1}/10"),
+            ResourceAmount::Units(units) => write!(f, "{units} units"),
+            ResourceAmount::Percentage(pct) => write!(f, "{pct:.1}%"),
+            ResourceAmount::Custom { value, unit } => write!(f, "{value:.1} {unit}"),
         }
     }
 }

@@ -57,8 +57,7 @@ impl SystemAnalysisError {
     /// Create a new system info error
     pub fn system_info(message: impl Into<String>) -> Self {
         Self::SystemInfoError {
-            source: Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other, 
+            source: Box::new(std::io::Error::other(
                 message.into()
             )),
         }

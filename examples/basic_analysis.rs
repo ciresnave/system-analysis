@@ -1,5 +1,5 @@
 use system_analysis::{SystemAnalyzer, WorkloadRequirements};
-use system_analysis::workloads::{AIInferenceWorkload, ModelParameters};
+use system_analysis::workloads::{AIInferenceWorkload, ModelParameters, WorkloadType};
 use system_analysis::resources::{ResourceRequirement, ResourceType, CapabilityLevel};
 
 #[tokio::main]
@@ -22,8 +22,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Check AI inference capabilities
     let ai_capabilities = system_profile.ai_capabilities();
-    println!("AI Inference Capability: {}", ai_capabilities.inference_level());
-    println!("AI Training Capability: {}", ai_capabilities.training_level());
+    println!("AI Inference Capability: {:?}", ai_capabilities.inference_capability);
+    println!("AI Training Capability: {:?}", ai_capabilities.training_capability);
     
     // Define a workload (e.g., running a specific AI model)
     let model_requirements = ModelParameters::new()
@@ -32,7 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .compute_required(5.0)
         .prefer_gpu(true);
     
-    let inference_workload = AIInferenceWorkload::new(model_requirements);
+    let _inference_workload = AIInferenceWorkload::new(model_requirements);
     
     // Define workload requirements
     let mut workload_requirements = WorkloadRequirements::new("llama2-7b-inference");
@@ -50,24 +50,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .preferred_vendor(Some("NVIDIA"))
     );
     
-    workload_requirements.set_workload(Box::new(inference_workload));
+    workload_requirements.workload = Some(WorkloadType::AIInference);
     
     // Check if the system can run the workload
     let compatibility = analyzer.check_compatibility(&system_profile, &workload_requirements)?;
     
-    if compatibility.is_compatible() {
+    if compatibility.is_compatible {
         println!("System can run the workload!");
-        println!("Compatibility score: {}/10", compatibility.score());
-        println!("Expected performance: {}", compatibility.performance_estimate());
+        println!("Compatibility score: {}/10", compatibility.score);
+        println!("Expected performance: {:?}", compatibility.performance_estimate);
     } else {
         println!("System cannot run the workload!");
         println!("Missing requirements:");
         
-        for missing in compatibility.missing_requirements() {
+        for missing in &compatibility.missing_requirements {
             println!("  - {}: required {}, available {}",
-                missing.resource_type(),
-                missing.required(),
-                missing.available()
+                missing.resource_type,
+                missing.required,
+                missing.available
             );
         }
         
@@ -77,9 +77,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Recommended upgrades:");
         for upgrade in recommendations {
             println!("  - {}: {} (estimated improvement: {})",
-                upgrade.resource_type(),
-                upgrade.recommendation(),
-                upgrade.estimated_improvement()
+                upgrade.resource_type,
+                upgrade.recommendation,
+                upgrade.estimated_improvement
             );
         }
     }
@@ -88,18 +88,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let utilization = analyzer.predict_utilization(&system_profile, &workload_requirements)?;
     
     println!("Predicted resource utilization:");
-    println!("  CPU: {}%", utilization.cpu_percent());
-    println!("  GPU: {}%", utilization.gpu_percent());
-    println!("  Memory: {}%", utilization.memory_percent());
+    println!("  CPU: {}%", utilization.cpu_percent);
+    println!("  GPU: {}%", utilization.gpu_percent);
+    println!("  Memory: {}%", utilization.memory_percent);
     
     // Find optimal configuration
     let optimal_config = analyzer.find_optimal_configuration(&workload_requirements)?;
     
     println!("Optimal hardware configuration:");
-    println!("  CPU: {}", optimal_config.cpu_recommendation());
-    println!("  GPU: {}", optimal_config.gpu_recommendation());
-    println!("  Memory: {}", optimal_config.memory_recommendation());
-    println!("  Storage: {}", optimal_config.storage_recommendation());
+    println!("  CPU: {}", optimal_config.cpu_recommendation);
+    println!("  GPU: {}", optimal_config.gpu_recommendation.as_deref().unwrap_or("Not required"));
+    println!("  Memory: {}", optimal_config.memory_recommendation);
+    println!("  Storage: {}", optimal_config.storage_recommendation);
     
     Ok(())
 }

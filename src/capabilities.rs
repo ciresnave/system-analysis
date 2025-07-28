@@ -747,6 +747,14 @@ pub struct CapabilityScores {
     pub cpu_score: f64,
     /// GPU score (0-10)
     pub gpu_score: f64,
+    /// NPU score (0-10)
+    pub npu_score: Option<f64>,
+    /// TPU score (0-10)
+    pub tpu_score: Option<f64>,
+    /// FPGA score (0-10)
+    pub fpga_score: Option<f64>,
+    /// ARM optimization score (0-10)
+    pub arm_optimization_score: Option<f64>,
     /// Memory score (0-10)
     pub memory_score: f64,
     /// Storage score (0-10)
@@ -772,11 +780,21 @@ impl CapabilityScores {
         let storage_score = storage.performance_score;
         let network_score = network.performance_score;
         
+        // AI accelerator scores - set to None for now until hardware-query integration
+        let npu_score = None; // TODO: Implement with hardware-query
+        let tpu_score = None; // TODO: Implement with hardware-query  
+        let fpga_score = None; // TODO: Implement with hardware-query
+        let arm_optimization_score = None; // TODO: Implement with hardware-query
+        
         let overall_score = (cpu_score + gpu_score + memory_score + storage_score + network_score) / 5.0;
         
         Self {
             cpu_score,
             gpu_score,
+            npu_score,
+            tpu_score,
+            fpga_score,
+            arm_optimization_score,
             memory_score,
             storage_score,
             network_score,
@@ -939,11 +957,15 @@ mod tests {
         let system_info = crate::types::SystemInfo {
             os_name: "Windows".to_string(),
             os_version: "11".to_string(),
-            cpu_info: cpu_info,
-            gpu_info: gpu_info,
-            memory_info: memory_info,
-            storage_info: storage_info,
-            network_info: network_info,
+            cpu_info,
+            gpu_info,
+            memory_info,
+            storage_info,
+            network_info,
+            npu_info: vec![], // No NPUs in test
+            tpu_info: vec![], // No TPUs in test  
+            fpga_info: vec![], // No FPGAs in test
+            arm_info: None, // Not ARM system in test
         };
 
         let capability_profile = CapabilityProfile::from_system_info(&system_info);

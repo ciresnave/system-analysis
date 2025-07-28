@@ -1,4 +1,4 @@
- # System Analysis
+# System Analysis
 
 [![Crates.io](https://img.shields.io/crates/v/system-analysis.svg)](https://crates.io/crates/system-analysis)
 [![Documentation](https://docs.rs/system-analysis/badge.svg)](https://docs.rs/system-analysis)
@@ -361,6 +361,7 @@ at your option.
 - Upgrade recommendations
 - Cross-platform support
 - Comprehensive examples and documentation
+
 ## 🔧 Advanced Usage
 
 ### Custom Workload Definition
@@ -459,7 +460,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### Performance Benchmarking
+### Advanced Performance Benchmarking
 
 ```rust
 use system_analysis::{SystemAnalyzer, utils::BenchmarkRunner};
@@ -596,8 +597,8 @@ cargo test
 
 This project is licensed under either of
 
- * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
- * MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+- Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
 
 at your option.
 

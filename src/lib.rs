@@ -36,18 +36,32 @@
 pub mod analyzer;
 pub mod capabilities;
 pub mod error;
+pub mod models;
 pub mod resources;
 pub mod types;
 pub mod utils;
 pub mod workloads;
+pub mod feedback;
+pub mod dynamic_models;
 
-// Re-export main types for convenience
-pub use analyzer::SystemAnalyzer;
-pub use capabilities::CapabilityProfile;
+// Re-export main types and functions
+pub use analyzer::{SystemAnalyzer, AnalyzerConfig};
 pub use error::{SystemAnalysisError, Result};
-pub use resources::{ResourceRequirement, ResourceType, CapabilityLevel};
+pub use models::{ModelDatabase, ModelDefinition, ModelRunner, get_model_database};
 pub use types::{
-    CompatibilityResult, PerformanceEstimate, ResourceUtilization, SystemProfile,
-    UpgradeRecommendation, WorkloadRequirements,
+    SystemProfile, WorkloadRequirements, WorkloadPriority, PerformanceTargets,
+    CompatibilityResult, PerformanceEstimate, PerformanceTier,
+    AIAcceleratorType, AIWorkloadRequirements, ModelCompatibilityResult,
+    AcceleratorCompatibility, AcceleratorDevice, QuantizationSuggestion,
+    PerformanceLevel, ModelBottleneck, ModelBottleneckType, BottleneckSeverity,
+    AIUpgradeRecommendations, MemoryUpgrade, GPUUpgrade, AcceleratorRecommendation,
+    StorageRecommendation, PerformanceGainEstimate, PerformanceImpact,
+    CapabilityLevel, LLMCapability, AICapabilities
 };
-pub use workloads::{AIInferenceWorkload, ModelParameters, Workload, WorkloadType};
+pub use workloads::{
+    Workload, WorkloadType, AIInferenceWorkload, AITrainingWorkload,
+    CustomWorkload, WorkloadRegistry, AIModel, AITaskType, QuantizationLevel,
+    ModelParameters, InferenceConfig, TrainingConfig, WorkloadMetadata
+};
+pub use feedback::{FeedbackIntegration, PerformanceFeedback, FeedbackBuilder, FeedbackCollector};
+pub use dynamic_models::{DynamicModelDatabase, ModelFetchConfig, ModelDatabaseStats};
