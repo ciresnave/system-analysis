@@ -561,7 +561,7 @@ impl SystemAnalyzer {
         }
 
         let cpu = &cpus[0];
-        let physical_cores = system.physical_core_count().unwrap_or(1);
+        let physical_cores = System::physical_core_count().unwrap_or(1);
         let logical_cores = cpus.len();
 
         Ok(CpuInfo {

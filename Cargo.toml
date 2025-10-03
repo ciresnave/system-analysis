@@ -1,6 +1,6 @@
 [package]
 name = "system-analysis"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 authors = ["Eric Evans <ciresnave@gmail.com>"]
 description = "A comprehensive Rust library for analyzing system capabilities, workload requirements, and optimal resource allocation"
@@ -11,7 +11,7 @@ homepage = "https://github.com/ciresnave/system-analysis"
 keywords = ["system", "analysis", "hardware", "workload", "performance"]
 categories = ["hardware-support", "development-tools", "science"]
 readme = "README.md"
-rust-version = "1.85"
+rust-version = "1.88"
 exclude = [
     "target/*",
     "Cargo.lock",
@@ -56,7 +56,7 @@ tracing-subscriber = "0.3"
 
 # System information - comprehensive hardware detection with AI accelerator support
 hardware-query = "0.2.0"  # AI-focused hardware detection with accelerator support
-sysinfo = "0.33"  # Fallback for compatibility during transition
+sysinfo = "0.37.2"  # Fallback for compatibility during transition
 
 # Time handling
 chrono = { version = "0.4", features = ["serde"] }
@@ -68,7 +68,7 @@ config = "0.15"
 reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 
 # HTML parsing for web scraping
-scraper = "0.21"
+scraper = "0.24"
 
 # URL handling
 url = "2.5"
@@ -80,7 +80,7 @@ nvml-wrapper = "0.11.0"
 tokio-test = "0.4"
 pretty_assertions = "1.4"
 tempfile = "3.8"
-criterion = { version = "0.6", features = ["html_reports"] }
+criterion = { version = "0.7", features = ["html_reports"] }
 
 [features]
 default = ["enhanced-detection", "hardware-query-integration"]

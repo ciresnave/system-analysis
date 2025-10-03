@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2025-10-03
+
+### Updated
+
+- Updated criterion from 0.6.0 to 0.7.0 for improved benchmarking
+- Updated scraper from 0.21.0 to 0.24.0 for latest web scraping capabilities  
+- Updated sysinfo from 0.33.1 to 0.37.2 for enhanced system information gathering
+- Updated MSRV to Rust 1.88 to support latest sysinfo requirements
+
+### Fixed
+
+- Fixed sysinfo API compatibility issue with `physical_core_count()` method (now static)
+
+## [0.2.0] - Previous Release
+
 ### Added
 - Initial implementation of system analysis capabilities
 - Hardware capability profiling (CPU, GPU, Memory, Storage, Network)
