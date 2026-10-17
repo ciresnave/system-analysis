@@ -321,15 +321,14 @@ impl ConfigValidator {
         }
 
         // Validate workload-specific requirements
-        if let Some(workload) = &workload_requirements.workload {
-            if let Err(e) = workload.validate() {
+        if let Some(workload) = &workload_requirements.workload
+            && let Err(e) = workload.validate() {
                 issues.push(ValidationIssue {
                     severity: ValidationSeverity::Error,
                     message: format!("Workload validation failed: {e}"),
                     suggestion: "Fix workload configuration".to_string(),
                 });
             }
-        }
 
         Ok(issues)
     }

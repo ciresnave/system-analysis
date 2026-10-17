@@ -924,13 +924,12 @@ impl CustomWorkload for BuiltCustomWorkload {
                 },
                 crate::resources::ResourceType::Memory => {
                     let system_memory_gb = system.system_info.memory_info.total_ram as f64 / 1024.0; // Convert MB to GB
-                    if let crate::resources::ResourceAmount::Gigabytes(min_gb) = req.minimum {
-                        if min_gb > system_memory_gb {
+                    if let crate::resources::ResourceAmount::Gigabytes(min_gb) = req.minimum
+                        && min_gb > system_memory_gb {
                             upgrades.push(format!(
                                 "Increase RAM to at least {min_gb:.1}GB"
                             ));
                         }
-                    }
                 },
                 crate::resources::ResourceType::Storage => {
                     if system.storage_score < 7.0 {

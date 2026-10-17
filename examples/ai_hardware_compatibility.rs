@@ -55,8 +55,8 @@ async fn main() -> Result<()> {
     }
     
     // Check for ARM system
-    if system_profile.is_arm_system() {
-        if let Some(system_type) = system_profile.arm_system_type() {
+    if system_profile.is_arm_system()
+        && let Some(system_type) = system_profile.arm_system_type() {
             println!("  ARM System Detected: {system_type}");
             if let Some(arm_info) = &system_profile.system_info.arm_info {
                 println!("    Board: {}", arm_info.board_model);
@@ -64,7 +64,6 @@ async fn main() -> Result<()> {
                 println!("    ML Capabilities: {:?}", arm_info.ml_capabilities);
             }
         }
-    }
     
     // Test AI capabilities
     println!("\nAI Capabilities Assessment:");

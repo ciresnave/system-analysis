@@ -398,8 +398,8 @@ impl ModelDatabase {
         let mut steps = Vec::new();
         
         // Quantization step
-        if let Some(quant) = quantization {
-            if *quant != QuantizationLevel::None {
+        if let Some(quant) = quantization
+            && *quant != QuantizationLevel::None {
                 let quant_desc = match quant {
                     QuantizationLevel::Int8 => "8-bit integer".to_string(),
                     QuantizationLevel::Int4 => "4-bit integer".to_string(),
@@ -414,11 +414,10 @@ impl ModelDatabase {
                     required: true,
                 });
             }
-        }
         
         // Runner-specific steps
-        if let Some(runner_name) = runner {
-            if let Some(_runner) = self.runners.get(runner_name) {
+        if let Some(runner_name) = runner
+            && let Some(_runner) = self.runners.get(runner_name) {
                 if runner_name.contains("llama.cpp") {
                     steps.push(PreprocessingStep {
                         name: "Convert to GGML format".to_string(),
@@ -435,7 +434,6 @@ impl ModelDatabase {
                     });
                 }
             }
-        }
         
         steps
     }

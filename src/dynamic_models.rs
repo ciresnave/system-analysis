@@ -189,7 +189,7 @@ impl DynamicModelDatabase {
             .collect();
 
         // Sort by relevance score (higher is better)
-        scored_models.sort_by(|a, b| b.1.cmp(&a.1));
+        scored_models.sort_by_key(|m| std::cmp::Reverse(m.1));
 
         Ok(scored_models.into_iter().map(|(model, _)| model).collect())
     }
@@ -220,7 +220,7 @@ impl DynamicModelDatabase {
             .collect();
 
         // Sort by relevance score (higher is better)
-        scored_names.sort_by(|a, b| b.1.cmp(&a.1));
+        scored_names.sort_by_key(|n| std::cmp::Reverse(n.1));
 
         Ok(scored_names
             .into_iter()
@@ -409,13 +409,12 @@ impl DynamicModelDatabase {
 
     /// Check if cache should be refreshed
     fn should_refresh_cache(&self) -> bool {
-        if let Ok(last_fetch) = self.last_fetch_time.read() {
-            if let Some(last_time) = *last_fetch {
+        if let Ok(last_fetch) = self.last_fetch_time.read()
+            && let Some(last_time) = *last_fetch {
                 let cache_duration =
                     chrono::Duration::seconds(self.config.cache_duration_seconds as i64);
                 return chrono::Utc::now() - last_time > cache_duration;
             }
-        }
         true // Cache never populated
     }
 
