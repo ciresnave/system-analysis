@@ -11,7 +11,7 @@ homepage = "https://github.com/ciresnave/system-analysis"
 keywords = ["system", "analysis", "hardware", "workload", "performance"]
 categories = ["hardware-support", "development-tools", "science"]
 readme = "README.md"
-rust-version = "1.88"
+rust-version = "1.95"
 exclude = [
     "target/*",
     "Cargo.lock",
