@@ -1,7 +1,7 @@
 //! Utility functions and helpers for system analysis.
 
 use crate::error::Result;
-use crate::resources::{ResourceType, ResourceAmount, CapabilityLevel};
+use crate::resources::{CapabilityLevel, ResourceAmount, ResourceType};
 use crate::types::{SystemProfile, WorkloadRequirements};
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
@@ -16,7 +16,10 @@ pub struct BenchmarkRunner {
 impl BenchmarkRunner {
     /// Create a new benchmark runner
     pub fn new(timeout: Duration, iterations: u32) -> Self {
-        Self { timeout, iterations }
+        Self {
+            timeout,
+            iterations,
+        }
     }
 
     /// Run CPU benchmark
@@ -106,11 +109,11 @@ impl SystemFingerprinter {
         use std::hash::{Hash, Hasher};
 
         let mut hasher = DefaultHasher::new();
-        
+
         // Include system-specific information
         std::env::consts::OS.hash(&mut hasher);
         std::env::consts::ARCH.hash(&mut hasher);
-        
+
         // Include hostname if available
         if let Ok(hostname) = std::env::var("COMPUTERNAME") {
             hostname.hash(&mut hasher);
@@ -206,10 +209,7 @@ pub struct ResourceComparator;
 
 impl ResourceComparator {
     /// Compare two systems and highlight differences
-    pub fn compare_systems(
-        system_a: &SystemProfile,
-        system_b: &SystemProfile,
-    ) -> SystemComparison {
+    pub fn compare_systems(system_a: &SystemProfile, system_b: &SystemProfile) -> SystemComparison {
         let cpu_diff = system_b.cpu_score() - system_a.cpu_score();
         let gpu_diff = system_b.gpu_score() - system_a.gpu_score();
         let memory_diff = system_b.memory_score() - system_a.memory_score();
@@ -305,14 +305,20 @@ impl ConfigValidator {
                 ResourceAmount::Gigabytes(gb) if *gb > 1000.0 => {
                     issues.push(ValidationIssue {
                         severity: ValidationSeverity::Warning,
-                        message: format!("Very high {} requirement: {:.1}GB", req.resource_type, gb),
+                        message: format!(
+                            "Very high {} requirement: {:.1}GB",
+                            req.resource_type, gb
+                        ),
                         suggestion: "Verify this requirement is realistic".to_string(),
                     });
                 }
                 ResourceAmount::Score(score) if *score > 10.0 => {
                     issues.push(ValidationIssue {
                         severity: ValidationSeverity::Error,
-                        message: format!("Invalid score for {}: {:.1} (max 10.0)", req.resource_type, score),
+                        message: format!(
+                            "Invalid score for {}: {:.1} (max 10.0)",
+                            req.resource_type, score
+                        ),
                         suggestion: "Adjust score to be within 0-10 range".to_string(),
                     });
                 }
@@ -321,14 +327,14 @@ impl ConfigValidator {
         }
 
         // Validate workload-specific requirements
-        if let Some(workload) = &workload_requirements.workload {
-            if let Err(e) = workload.validate() {
-                issues.push(ValidationIssue {
-                    severity: ValidationSeverity::Error,
-                    message: format!("Workload validation failed: {e}"),
-                    suggestion: "Fix workload configuration".to_string(),
-                });
-            }
+        if let Some(workload) = &workload_requirements.workload
+            && let Err(e) = workload.validate()
+        {
+            issues.push(ValidationIssue {
+                severity: ValidationSeverity::Error,
+                message: format!("Workload validation failed: {e}"),
+                suggestion: "Fix workload configuration".to_string(),
+            });
         }
 
         Ok(issues)
@@ -403,9 +409,10 @@ impl HardwareDetector {
             changes.push(HardwareChange {
                 component: HardwareComponent::CPU,
                 change_type: HardwareChangeType::Replaced,
-                details: format!("CPU changed from '{}' to '{}'", 
-                    last_system_info.cpu_info.brand, 
-                    current_system_info.cpu_info.brand),
+                details: format!(
+                    "CPU changed from '{}' to '{}'",
+                    last_system_info.cpu_info.brand, current_system_info.cpu_info.brand
+                ),
             });
         }
 
@@ -413,14 +420,18 @@ impl HardwareDetector {
         if last_system_info.memory_info.total_ram != current_system_info.memory_info.total_ram {
             changes.push(HardwareChange {
                 component: HardwareComponent::Memory,
-                change_type: if current_system_info.memory_info.total_ram > last_system_info.memory_info.total_ram {
+                change_type: if current_system_info.memory_info.total_ram
+                    > last_system_info.memory_info.total_ram
+                {
                     HardwareChangeType::Upgraded
                 } else {
                     HardwareChangeType::Downgraded
                 },
-                details: format!("Memory changed from {}MB to {}MB", 
-                    last_system_info.memory_info.total_ram, 
-                    current_system_info.memory_info.total_ram),
+                details: format!(
+                    "Memory changed from {}MB to {}MB",
+                    last_system_info.memory_info.total_ram,
+                    current_system_info.memory_info.total_ram
+                ),
             });
         }
 
@@ -428,14 +439,17 @@ impl HardwareDetector {
         if last_system_info.gpu_info.len() != current_system_info.gpu_info.len() {
             changes.push(HardwareChange {
                 component: HardwareComponent::GPU,
-                change_type: if current_system_info.gpu_info.len() > last_system_info.gpu_info.len() {
+                change_type: if current_system_info.gpu_info.len() > last_system_info.gpu_info.len()
+                {
                     HardwareChangeType::Added
                 } else {
                     HardwareChangeType::Removed
                 },
-                details: format!("GPU count changed from {} to {}", 
-                    last_system_info.gpu_info.len(), 
-                    current_system_info.gpu_info.len()),
+                details: format!(
+                    "GPU count changed from {} to {}",
+                    last_system_info.gpu_info.len(),
+                    current_system_info.gpu_info.len()
+                ),
             });
         }
 
@@ -443,14 +457,18 @@ impl HardwareDetector {
         if last_system_info.storage_info.len() != current_system_info.storage_info.len() {
             changes.push(HardwareChange {
                 component: HardwareComponent::Storage,
-                change_type: if current_system_info.storage_info.len() > last_system_info.storage_info.len() {
+                change_type: if current_system_info.storage_info.len()
+                    > last_system_info.storage_info.len()
+                {
                     HardwareChangeType::Added
                 } else {
                     HardwareChangeType::Removed
                 },
-                details: format!("Storage device count changed from {} to {}", 
-                    last_system_info.storage_info.len(), 
-                    current_system_info.storage_info.len()),
+                details: format!(
+                    "Storage device count changed from {} to {}",
+                    last_system_info.storage_info.len(),
+                    current_system_info.storage_info.len()
+                ),
             });
         }
 
@@ -491,9 +509,7 @@ pub struct TrendAnalyzer;
 
 impl TrendAnalyzer {
     /// Analyze performance trends over time
-    pub fn analyze_trends(
-        historical_profiles: &[SystemProfile],
-    ) -> PerformanceTrends {
+    pub fn analyze_trends(historical_profiles: &[SystemProfile]) -> PerformanceTrends {
         if historical_profiles.is_empty() {
             return PerformanceTrends::default();
         }
@@ -518,9 +534,12 @@ impl TrendAnalyzer {
             memory_trend: Self::calculate_trend(&memory_scores),
             storage_trend: Self::calculate_trend(&storage_scores),
             network_trend: Self::calculate_trend(&network_scores),
-            overall_trend: Self::calculate_trend(&historical_profiles.iter()
-                .map(|p| p.overall_score())
-                .collect::<Vec<_>>()),
+            overall_trend: Self::calculate_trend(
+                &historical_profiles
+                    .iter()
+                    .map(|p| p.overall_score())
+                    .collect::<Vec<_>>(),
+            ),
         }
     }
 

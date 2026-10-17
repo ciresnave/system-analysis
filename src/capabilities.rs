@@ -1,7 +1,7 @@
 //! Hardware capability analysis and profiling.
 
-use crate::resources::{ResourceType, CapabilityLevel, ResourceAmount};
-use crate::types::{SystemInfo, CpuInfo, GpuInfo, MemoryInfo, StorageInfo, NetworkInfo};
+use crate::resources::{CapabilityLevel, ResourceAmount, ResourceType};
+use crate::types::{CpuInfo, GpuInfo, MemoryInfo, NetworkInfo, StorageInfo, SystemInfo};
 use serde::{Deserialize, Serialize};
 
 /// Comprehensive capability profile for a system
@@ -29,8 +29,10 @@ impl CapabilityProfile {
         let cpu_capabilities = CpuCapabilities::from_cpu_info(&system_info.cpu_info);
         let gpu_capabilities = GpuCapabilities::from_gpu_info(&system_info.gpu_info);
         let memory_capabilities = MemoryCapabilities::from_memory_info(&system_info.memory_info);
-        let storage_capabilities = StorageCapabilities::from_storage_info(&system_info.storage_info);
-        let network_capabilities = NetworkCapabilities::from_network_info(&system_info.network_info);
+        let storage_capabilities =
+            StorageCapabilities::from_storage_info(&system_info.storage_info);
+        let network_capabilities =
+            NetworkCapabilities::from_network_info(&system_info.network_info);
 
         let scores = CapabilityScores::calculate(
             &cpu_capabilities,
@@ -66,7 +68,7 @@ impl CapabilityProfile {
         system_info.cpu_info.brand.hash(&mut hasher);
         system_info.cpu_info.physical_cores.hash(&mut hasher);
         system_info.memory_info.total_ram.hash(&mut hasher);
-        
+
         for gpu in &system_info.gpu_info {
             gpu.name.hash(&mut hasher);
             gpu.vendor.hash(&mut hasher);
@@ -93,10 +95,10 @@ impl CapabilityProfile {
             ResourceType::CPU => Some(ResourceAmount::Score(self.scores.cpu_score)),
             ResourceType::GPU => Some(ResourceAmount::Score(self.scores.gpu_score)),
             ResourceType::Memory => Some(ResourceAmount::Gigabytes(
-                self.memory_capabilities.total_ram_gb
+                self.memory_capabilities.total_ram_gb,
             )),
             ResourceType::Storage => Some(ResourceAmount::Gigabytes(
-                self.storage_capabilities.total_capacity_gb
+                self.storage_capabilities.total_capacity_gb,
             )),
             ResourceType::Network => Some(ResourceAmount::Score(self.scores.network_score)),
             ResourceType::Custom(_) => None,
@@ -147,14 +149,14 @@ pub struct CpuCapabilities {
 impl CpuCapabilities {
     /// Create CPU capabilities from CPU info
     pub fn from_cpu_info(cpu_info: &CpuInfo) -> Self {
-        let avx_support = cpu_info.brand.to_lowercase().contains("intel") || 
-                         cpu_info.brand.to_lowercase().contains("amd");
-        
+        let avx_support = cpu_info.brand.to_lowercase().contains("intel")
+            || cpu_info.brand.to_lowercase().contains("amd");
+
         let virtualization_support = cpu_info.logical_cores > cpu_info.physical_cores;
-        
+
         let thread_performance = Self::calculate_thread_performance(cpu_info);
         let multicore_efficiency = Self::calculate_multicore_efficiency(cpu_info);
-        
+
         Self {
             physical_cores: cpu_info.physical_cores,
             logical_cores: cpu_info.logical_cores,
@@ -173,18 +175,33 @@ impl CpuCapabilities {
     /// Calculate thread performance score
     fn calculate_thread_performance(cpu_info: &CpuInfo) -> f64 {
         let base_score = (cpu_info.base_frequency as f64 / 1000.0).min(5.0); // Up to 5 points for frequency
-        let cache_bonus = cpu_info.cache_size.map(|c| (c as f64 / 16.0).min(2.0)).unwrap_or(0.0); // Up to 2 points for cache
-        let arch_bonus = if cpu_info.architecture.contains("x86_64") { 1.0 } else { 0.5 };
-        
+        let cache_bonus = cpu_info
+            .cache_size
+            .map(|c| (c as f64 / 16.0).min(2.0))
+            .unwrap_or(0.0); // Up to 2 points for cache
+        let arch_bonus = if cpu_info.architecture.contains("x86_64") {
+            1.0
+        } else {
+            0.5
+        };
+
         (base_score + cache_bonus + arch_bonus).min(10.0)
     }
 
     /// Calculate multicore efficiency score
     fn calculate_multicore_efficiency(cpu_info: &CpuInfo) -> f64 {
         let core_score = (cpu_info.physical_cores as f64 / 2.0).min(5.0); // Up to 5 points for cores
-        let hyperthreading_bonus = if cpu_info.logical_cores > cpu_info.physical_cores { 2.0 } else { 0.0 };
-        let architecture_bonus = if cpu_info.architecture.contains("x86_64") { 1.0 } else { 0.5 };
-        
+        let hyperthreading_bonus = if cpu_info.logical_cores > cpu_info.physical_cores {
+            2.0
+        } else {
+            0.0
+        };
+        let architecture_bonus = if cpu_info.architecture.contains("x86_64") {
+            1.0
+        } else {
+            0.5
+        };
+
         (core_score + hyperthreading_bonus + architecture_bonus).min(10.0)
     }
 
@@ -220,20 +237,18 @@ impl GpuCapabilities {
     /// Create GPU capabilities from GPU info
     pub fn from_gpu_info(gpu_info: &[GpuInfo]) -> Self {
         let gpus: Vec<GpuDevice> = gpu_info.iter().map(GpuDevice::from_gpu_info).collect();
-        
-        let total_vram_gb = gpus.iter()
-            .map(|gpu| gpu.vram_gb.unwrap_or(0.0))
-            .sum();
-        
+
+        let total_vram_gb = gpus.iter().map(|gpu| gpu.vram_gb.unwrap_or(0.0)).sum();
+
         let cuda_support = gpus.iter().any(|gpu| gpu.cuda_support);
         let opencl_support = gpus.iter().any(|gpu| gpu.opencl_support);
-        
+
         let primary_compute_gpu = Self::find_best_compute_gpu(&gpus);
-        
+
         let ai_acceleration_score = Self::calculate_ai_score(&gpus);
         let graphics_score = Self::calculate_graphics_score(&gpus);
         let compute_score = Self::calculate_compute_score(&gpus);
-        
+
         Self {
             gpus,
             primary_compute_gpu,
@@ -250,7 +265,11 @@ impl GpuCapabilities {
     fn find_best_compute_gpu(gpus: &[GpuDevice]) -> Option<usize> {
         gpus.iter()
             .enumerate()
-            .max_by(|(_, a), (_, b)| a.compute_capability_score.partial_cmp(&b.compute_capability_score).unwrap())
+            .max_by(|(_, a), (_, b)| {
+                a.compute_capability_score
+                    .partial_cmp(&b.compute_capability_score)
+                    .unwrap()
+            })
             .map(|(idx, _)| idx)
     }
 
@@ -260,14 +279,23 @@ impl GpuCapabilities {
             return 0.0;
         }
 
-        let best_gpu = gpus.iter()
-            .max_by(|a, b| a.compute_capability_score.partial_cmp(&b.compute_capability_score).unwrap())
+        let best_gpu = gpus
+            .iter()
+            .max_by(|a, b| {
+                a.compute_capability_score
+                    .partial_cmp(&b.compute_capability_score)
+                    .unwrap()
+            })
             .unwrap();
 
         let vram_score = best_gpu.vram_gb.map(|v| (v / 8.0).min(4.0)).unwrap_or(0.0); // Up to 4 points for VRAM
-        let vendor_bonus = if best_gpu.vendor.to_lowercase().contains("nvidia") { 3.0 } else { 1.0 };
+        let vendor_bonus = if best_gpu.vendor.to_lowercase().contains("nvidia") {
+            3.0
+        } else {
+            1.0
+        };
         let cuda_bonus = if best_gpu.cuda_support { 2.0 } else { 0.0 };
-        
+
         (vram_score + vendor_bonus + cuda_bonus).min(10.0)
     }
 
@@ -277,7 +305,8 @@ impl GpuCapabilities {
             return 0.0;
         }
 
-        let best_gpu = gpus.iter()
+        let best_gpu = gpus
+            .iter()
             .max_by(|a, b| a.graphics_score.partial_cmp(&b.graphics_score).unwrap())
             .unwrap();
 
@@ -290,8 +319,13 @@ impl GpuCapabilities {
             return 0.0;
         }
 
-        let best_gpu = gpus.iter()
-            .max_by(|a, b| a.compute_capability_score.partial_cmp(&b.compute_capability_score).unwrap())
+        let best_gpu = gpus
+            .iter()
+            .max_by(|a, b| {
+                a.compute_capability_score
+                    .partial_cmp(&b.compute_capability_score)
+                    .unwrap()
+            })
             .unwrap();
 
         best_gpu.compute_capability_score
@@ -325,11 +359,11 @@ impl GpuDevice {
     /// Create GPU device from GPU info
     pub fn from_gpu_info(gpu_info: &GpuInfo) -> Self {
         let vram_gb = gpu_info.vram_size.map(|v| v as f64 / 1024.0);
-        
+
         let graphics_score = Self::calculate_graphics_score_for_device(gpu_info);
         let compute_score = Self::calculate_compute_score_for_device(gpu_info);
         let power_efficiency = Self::calculate_power_efficiency(gpu_info);
-        
+
         Self {
             name: gpu_info.name.clone(),
             vendor: gpu_info.vendor.clone(),
@@ -345,32 +379,39 @@ impl GpuDevice {
 
     /// Calculate graphics score for individual device
     fn calculate_graphics_score_for_device(gpu_info: &GpuInfo) -> f64 {
-        let vram_score = gpu_info.vram_size.map(|v| (v as f64 / 1024.0 / 4.0).min(3.0)).unwrap_or(0.0);
+        let vram_score = gpu_info
+            .vram_size
+            .map(|v| (v as f64 / 1024.0 / 4.0).min(3.0))
+            .unwrap_or(0.0);
         let vendor_score = match gpu_info.vendor.to_lowercase().as_str() {
             vendor if vendor.contains("nvidia") => 4.0,
             vendor if vendor.contains("amd") => 3.5,
             vendor if vendor.contains("intel") => 2.0,
             _ => 1.0,
         };
-        let modern_bonus = if gpu_info.name.contains("RTX") || gpu_info.name.contains("RX") { 2.0 } else { 0.0 };
-        
+        let modern_bonus = if gpu_info.name.contains("RTX") || gpu_info.name.contains("RX") {
+            2.0
+        } else {
+            0.0
+        };
+
         (vram_score + vendor_score + modern_bonus).min(10.0)
     }
 
     /// Calculate compute score for individual device
     fn calculate_compute_score_for_device(gpu_info: &GpuInfo) -> f64 {
         let mut score = 0.0;
-        
+
         // VRAM contribution
         if let Some(vram) = gpu_info.vram_size {
             score += (vram as f64 / 1024.0 / 8.0).min(4.0); // Up to 4 points for VRAM
         }
-        
+
         // CUDA support bonus
         if gpu_info.cuda_support {
             score += 3.0;
         }
-        
+
         // Vendor scoring
         score += match gpu_info.vendor.to_lowercase().as_str() {
             vendor if vendor.contains("nvidia") => 2.0,
@@ -378,12 +419,15 @@ impl GpuDevice {
             vendor if vendor.contains("intel") => 0.5,
             _ => 0.0,
         };
-        
+
         // Modern architecture bonus
-        if gpu_info.name.contains("RTX") || gpu_info.name.contains("A100") || gpu_info.name.contains("H100") {
+        if gpu_info.name.contains("RTX")
+            || gpu_info.name.contains("A100")
+            || gpu_info.name.contains("H100")
+        {
             score += 1.0;
         }
-        
+
         score.min(10.0)
     }
 
@@ -426,15 +470,17 @@ impl MemoryCapabilities {
     pub fn from_memory_info(memory_info: &MemoryInfo) -> Self {
         let total_ram_gb = memory_info.total_ram as f64 / 1024.0;
         let available_ram_gb = memory_info.available_ram as f64 / 1024.0;
-        
+
         let capacity_score = Self::calculate_capacity_score(total_ram_gb);
         let bandwidth_score = Self::calculate_bandwidth_score(memory_info);
-        
+
         let high_bandwidth = memory_info.memory_speed.map(|s| s >= 3200).unwrap_or(false);
-        let ecc_support = memory_info.memory_type.as_ref()
+        let ecc_support = memory_info
+            .memory_type
+            .as_ref()
             .map(|t| t.to_lowercase().contains("ecc"))
             .unwrap_or(false);
-        
+
         Self {
             total_ram_gb,
             available_ram_gb,
@@ -462,11 +508,14 @@ impl MemoryCapabilities {
 
     /// Calculate memory bandwidth score
     fn calculate_bandwidth_score(memory_info: &MemoryInfo) -> f64 {
-        let speed_score = memory_info.memory_speed
+        let speed_score = memory_info
+            .memory_speed
             .map(|speed| (speed as f64 / 800.0).min(5.0)) // Up to 5 points for speed
             .unwrap_or(2.0);
-        
-        let type_bonus = memory_info.memory_type.as_ref()
+
+        let type_bonus = memory_info
+            .memory_type
+            .as_ref()
             .map(|t| match t.to_lowercase().as_str() {
                 t if t.contains("ddr5") => 3.0,
                 t if t.contains("ddr4") => 2.0,
@@ -474,7 +523,7 @@ impl MemoryCapabilities {
                 _ => 0.5,
             })
             .unwrap_or(1.0);
-        
+
         (speed_score + type_bonus).min(10.0)
     }
 }
@@ -499,36 +548,36 @@ pub struct StorageCapabilities {
 impl StorageCapabilities {
     /// Create storage capabilities from storage info
     pub fn from_storage_info(storage_info: &[StorageInfo]) -> Self {
-        let devices: Vec<StorageDevice> = storage_info.iter()
+        let devices: Vec<StorageDevice> = storage_info
+            .iter()
             .map(StorageDevice::from_storage_info)
             .collect();
-        
-        let total_capacity_gb = devices.iter()
-            .map(|d| d.total_capacity_gb)
-            .sum();
-        
-        let available_capacity_gb = devices.iter()
-            .map(|d| d.available_capacity_gb)
-            .sum();
-        
-        let performance_score = devices.iter()
+
+        let total_capacity_gb = devices.iter().map(|d| d.total_capacity_gb).sum();
+
+        let available_capacity_gb = devices.iter().map(|d| d.available_capacity_gb).sum();
+
+        let performance_score = devices
+            .iter()
             .map(|d| d.performance_score)
             .fold(0.0, f64::max);
-        
-        let nvme_support = devices.iter()
+
+        let nvme_support = devices
+            .iter()
             .any(|d| d.storage_type.to_lowercase().contains("nvme"));
-        
-        let ssd_capacity: f64 = devices.iter()
+
+        let ssd_capacity: f64 = devices
+            .iter()
             .filter(|d| d.is_ssd())
             .map(|d| d.total_capacity_gb)
             .sum();
-        
+
         let ssd_ratio = if total_capacity_gb > 0.0 {
             ssd_capacity / total_capacity_gb * 100.0
         } else {
             0.0
         };
-        
+
         Self {
             devices,
             total_capacity_gb,
@@ -566,7 +615,7 @@ impl StorageDevice {
     pub fn from_storage_info(storage_info: &StorageInfo) -> Self {
         let performance_score = Self::calculate_performance_score(storage_info);
         let reliability_score = Self::calculate_reliability_score(storage_info);
-        
+
         Self {
             name: storage_info.name.clone(),
             storage_type: storage_info.storage_type.clone(),
@@ -593,11 +642,12 @@ impl StorageDevice {
             t if t.contains("hdd") => 2.0,
             _ => 3.0,
         };
-        
-        let speed_bonus = storage_info.read_speed
+
+        let speed_bonus = storage_info
+            .read_speed
             .map(|s| (s as f64 / 1000.0).min(2.0)) // Up to 2 points for read speed
             .unwrap_or(0.0);
-        
+
         (type_score + speed_bonus).min(10.0)
     }
 
@@ -632,15 +682,19 @@ pub struct NetworkCapabilities {
 impl NetworkCapabilities {
     /// Create network capabilities from network info
     pub fn from_network_info(network_info: &NetworkInfo) -> Self {
-        let interfaces: Vec<NetworkInterface> = network_info.interfaces.iter()
+        let interfaces: Vec<NetworkInterface> = network_info
+            .interfaces
+            .iter()
             .map(NetworkInterface::from_network_interface_info)
             .collect();
-        
-        let performance_score = Self::calculate_network_performance(&interfaces, network_info.estimated_bandwidth);
-        let high_speed_support = network_info.estimated_bandwidth
+
+        let performance_score =
+            Self::calculate_network_performance(&interfaces, network_info.estimated_bandwidth);
+        let high_speed_support = network_info
+            .estimated_bandwidth
             .map(|b| b >= 1000)
             .unwrap_or(false);
-        
+
         Self {
             interfaces,
             internet_connected: network_info.internet_connected,
@@ -652,11 +706,14 @@ impl NetworkCapabilities {
     }
 
     /// Calculate network performance score
-    fn calculate_network_performance(interfaces: &[NetworkInterface], bandwidth: Option<u64>) -> f64 {
+    fn calculate_network_performance(
+        interfaces: &[NetworkInterface],
+        bandwidth: Option<u64>,
+    ) -> f64 {
         let bandwidth_score = bandwidth
             .map(|b| (b as f64 / 100.0).min(5.0)) // Up to 5 points for bandwidth
             .unwrap_or(1.0);
-        
+
         let interface_score = if interfaces.iter().any(|i| i.is_high_speed()) {
             3.0
         } else if interfaces.iter().any(|i| i.is_ethernet()) {
@@ -664,13 +721,13 @@ impl NetworkCapabilities {
         } else {
             1.0
         };
-        
+
         let connection_bonus = if interfaces.iter().any(|i| !i.ip_addresses.is_empty()) {
             2.0
         } else {
             0.0
         };
-        
+
         (bandwidth_score + interface_score + connection_bonus).min(10.0)
     }
 }
@@ -696,7 +753,7 @@ impl NetworkInterface {
     /// Create network interface from network interface info
     pub fn from_network_interface_info(interface_info: &crate::types::NetworkInterface) -> Self {
         let quality_score = Self::calculate_quality_score(interface_info);
-        
+
         Self {
             name: interface_info.name.clone(),
             interface_type: interface_info.interface_type.clone(),
@@ -725,17 +782,18 @@ impl NetworkInterface {
             t if t.contains("wireless") => 3.0,
             _ => 2.0,
         };
-        
-        let speed_score = interface_info.speed
+
+        let speed_score = interface_info
+            .speed
             .map(|s| (s as f64 / 500.0).min(3.0)) // Up to 3 points for speed
             .unwrap_or(1.0);
-        
+
         let connection_bonus = if !interface_info.ip_addresses.is_empty() {
             3.0
         } else {
             0.0
         };
-        
+
         (type_score + speed_score + connection_bonus).min(10.0)
     }
 }
@@ -779,15 +837,16 @@ impl CapabilityScores {
         let memory_score = (memory.capacity_score + memory.bandwidth_score) / 2.0;
         let storage_score = storage.performance_score;
         let network_score = network.performance_score;
-        
+
         // AI accelerator scores - set to None for now until hardware-query integration
         let npu_score = None; // TODO: Implement with hardware-query
         let tpu_score = None; // TODO: Implement with hardware-query  
         let fpga_score = None; // TODO: Implement with hardware-query
         let arm_optimization_score = None; // TODO: Implement with hardware-query
-        
-        let overall_score = (cpu_score + gpu_score + memory_score + storage_score + network_score) / 5.0;
-        
+
+        let overall_score =
+            (cpu_score + gpu_score + memory_score + storage_score + network_score) / 5.0;
+
         Self {
             cpu_score,
             gpu_score,
@@ -835,7 +894,7 @@ pub enum SystemFeature {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{CpuInfo, MemoryInfo, StorageInfo, NetworkInfo, NetworkInterface};
+    use crate::types::{CpuInfo, MemoryInfo, NetworkInfo, NetworkInterface, StorageInfo};
 
     #[test]
     fn test_cpu_capability_creation() {
@@ -850,7 +909,7 @@ mod tests {
         };
 
         let cpu_capability = CpuCapabilities::from_cpu_info(&cpu_info);
-        
+
         assert_eq!(cpu_capability.architecture, "x86_64");
         assert_eq!(cpu_capability.physical_cores, 6);
         assert_eq!(cpu_capability.logical_cores, 12);
@@ -862,14 +921,14 @@ mod tests {
     #[test]
     fn test_memory_capability_creation() {
         let memory_info = MemoryInfo {
-            total_ram: 16_000_000_000, // 16GB in bytes
+            total_ram: 16_000_000_000,     // 16GB in bytes
             available_ram: 12_000_000_000, // 12GB in bytes
             memory_speed: Some(3200),
             memory_type: Some("DDR4".to_string()),
         };
 
         let memory_capability = MemoryCapabilities::from_memory_info(&memory_info);
-        
+
         assert!(memory_capability.total_ram_gb > 0.0);
         assert!(memory_capability.available_ram_gb > 0.0);
         assert_eq!(memory_capability.memory_type, Some("DDR4".to_string()));
@@ -888,7 +947,7 @@ mod tests {
         }];
 
         let storage_capability = StorageCapabilities::from_storage_info(&storage_info);
-        
+
         assert!(storage_capability.total_capacity_gb > 0.0);
         assert!(storage_capability.available_capacity_gb > 0.0);
         assert!(storage_capability.nvme_support);
@@ -898,21 +957,19 @@ mod tests {
     #[test]
     fn test_network_capability_creation() {
         let network_info = NetworkInfo {
-            interfaces: vec![
-                NetworkInterface {
-                    name: "Ethernet".to_string(),
-                    interface_type: "Ethernet".to_string(),
-                    mac_address: "00:11:22:33:44:55".to_string(),
-                    ip_addresses: vec!["192.168.1.100".to_string()],
-                    speed: Some(1000),
-                }
-            ],
+            interfaces: vec![NetworkInterface {
+                name: "Ethernet".to_string(),
+                interface_type: "Ethernet".to_string(),
+                mac_address: "00:11:22:33:44:55".to_string(),
+                ip_addresses: vec!["192.168.1.100".to_string()],
+                speed: Some(1000),
+            }],
             internet_connected: true,
             estimated_bandwidth: Some(1000),
         };
 
         let network_capability = NetworkCapabilities::from_network_info(&network_info);
-        
+
         assert!(network_capability.internet_connected);
         assert!(network_capability.estimated_bandwidth_mbps.unwrap_or(0) > 0);
         assert!(network_capability.performance_score > 0.0);
@@ -931,7 +988,7 @@ mod tests {
         };
 
         let memory_info = MemoryInfo {
-            total_ram: 8_000_000_000, // 8GB in bytes
+            total_ram: 8_000_000_000,     // 8GB in bytes
             available_ram: 6_000_000_000, // 6GB in bytes
             memory_speed: Some(2666),
             memory_type: Some("DDR4".to_string()),
@@ -962,14 +1019,14 @@ mod tests {
             memory_info,
             storage_info,
             network_info,
-            npu_info: vec![], // No NPUs in test
-            tpu_info: vec![], // No TPUs in test  
+            npu_info: vec![],  // No NPUs in test
+            tpu_info: vec![],  // No TPUs in test
             fpga_info: vec![], // No FPGAs in test
-            arm_info: None, // Not ARM system in test
+            arm_info: None,    // Not ARM system in test
         };
 
         let capability_profile = CapabilityProfile::from_system_info(&system_info);
-        
+
         assert!(capability_profile.scores.overall_score >= 0.0);
         assert!(capability_profile.scores.overall_score <= 10.0);
     }
@@ -989,9 +1046,12 @@ mod tests {
 
         let low_capability = CpuCapabilities::from_cpu_info(&low_end_cpu);
         let low_ai_level = low_capability.ai_capability_level();
-        
+
         // Should be Very Low or Low for a Celeron
-        assert!(matches!(low_ai_level, CapabilityLevel::VeryLow | CapabilityLevel::Low));
+        assert!(matches!(
+            low_ai_level,
+            CapabilityLevel::VeryLow | CapabilityLevel::Low
+        ));
 
         // Test high-end system
         let high_end_cpu = CpuInfo {
@@ -1006,8 +1066,11 @@ mod tests {
 
         let high_capability = CpuCapabilities::from_cpu_info(&high_end_cpu);
         let high_ai_level = high_capability.ai_capability_level();
-        
+
         // Should be High or Very High for an i9
-        assert!(matches!(high_ai_level, CapabilityLevel::High | CapabilityLevel::VeryHigh));
+        assert!(matches!(
+            high_ai_level,
+            CapabilityLevel::High | CapabilityLevel::VeryHigh
+        ));
     }
 }

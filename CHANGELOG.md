@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-17
+
+### Breaking
+
+- Raised MSRV from 1.88 to 1.95, to take hardware-query 0.3.0 and the
+  other dependency bumps below.
+
+### Updated
+
+- hardware-query 0.2.0 -> 0.3.0 (pulls in its Linux-build fix,
+  dependency-freshness pass, and clippy/fmt cleanup; this crate only
+  calls `HardwareInfo::query()` and its stable accessor methods,
+  none of which were renamed)
+- reqwest 0.12 -> 0.13 (the `rustls-tls` feature was renamed to
+  `rustls`; no other API usage affected)
+- scraper 0.24 -> 0.27
+- nvml-wrapper 0.11 -> 0.13
+- sysinfo 0.37.2 -> 0.39
+- criterion 0.7 -> 0.8 (dev-dependency)
+- tempfile 3.8 -> 3.27 (dev-dependency)
+- rayon 1.7 -> 1.12, dashmap 6.1 -> 6.2, tokio 1.0 -> 1.53 (no
+  breaking usage encountered)
+
+### Fixed
+
+- Collapsed several nested if-let/match patterns into if-let-chains
+  and replaced two reverse-order `sort_by` closures with
+  `sort_by_key(Reverse(..))`, both newly suggested by clippy once the
+  MSRV bump unlocked let-chain syntax. No behavior change.
+- Ran `cargo fmt` for the first time on this repo (formatting only).
+
+### CI
+
+- Bumped the `msrv` job's pinned toolchain from 1.70.0 to 1.95.0 to
+  match the new `rust-version`. The existing `test` job's
+  ubuntu-latest/windows-latest/macos-latest matrix already covers
+  Linux (and Windows/macOS) builds, so no separate Linux-only job
+  was needed.
+
 ## [0.2.1] - 2025-10-03
 
 ### Updated

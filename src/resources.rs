@@ -94,7 +94,7 @@ impl CapabilityLevel {
     pub fn to_numeric(&self) -> f64 {
         (*self).into()
     }
-    
+
     /// Create from numeric score
     pub fn from_numeric(score: f64) -> Self {
         score.into()
@@ -208,30 +208,35 @@ impl ResourceRequirement {
         // Already critical by default if not set
         self
     }
-    
+
     /// Set minimum GHz (for CPU)
     pub fn minimum_ghz(mut self, ghz: f64) -> Self {
         self.minimum = ResourceAmount::Megahertz(ghz * 1000.0);
         self
     }
-    
+
     /// Set GPU memory requirement
     pub fn gpu_memory_gb(self, gb: f64) -> Self {
         // For GPU memory we can use a custom constraint
-        self.add_constraint(ResourceConstraint::RequiredFeature(format!("GPU Memory: {gb} GB")))
+        self.add_constraint(ResourceConstraint::RequiredFeature(format!(
+            "GPU Memory: {gb} GB"
+        )))
     }
-    
+
     /// Set storage type
     pub fn storage_type(self, storage_type: String) -> Self {
         self.add_constraint(ResourceConstraint::RequiredFeature(storage_type))
     }
-    
+
     /// Set minimum Mbps (for network)
     pub fn minimum_mbps(mut self, mbps: f64) -> Self {
-        self.minimum = ResourceAmount::Custom { value: mbps, unit: "Mbps".to_string() };
+        self.minimum = ResourceAmount::Custom {
+            value: mbps,
+            unit: "Mbps".to_string(),
+        };
         self
     }
-    
+
     /// Set number of cores
     pub fn cores(mut self, cores: u32) -> Self {
         self.minimum = ResourceAmount::Units(cores);
@@ -300,22 +305,22 @@ impl ResourceAmount {
     pub fn new_gb(gb: f64) -> Self {
         ResourceAmount::Gigabytes(gb)
     }
-    
+
     /// Create a megabyte amount (converted to GB)
     pub fn new_mb(mb: f64) -> Self {
         ResourceAmount::Gigabytes(mb / 1024.0)
     }
-    
+
     /// Create a megahertz amount
     pub fn new_mhz(mhz: f64) -> Self {
         ResourceAmount::Megahertz(mhz)
     }
-    
+
     /// Create a gigahertz amount (converted to MHz)
     pub fn new_ghz(ghz: f64) -> Self {
         ResourceAmount::Megahertz(ghz * 1000.0)
     }
-    
+
     /// Get value as gigabytes if possible
     pub fn as_gb(&self) -> Option<f64> {
         match self {
@@ -388,7 +393,7 @@ impl ResourcePool {
     pub fn add_resource(&mut self, resource_type: ResourceType, amount: ResourceAmount) {
         self.set_resource(resource_type, amount);
     }
-    
+
     /// Get available amount for a resource type
     pub fn get_resource(&self, resource_type: &ResourceType) -> Option<&ResourceAmount> {
         self.resources.get(resource_type)
@@ -396,7 +401,8 @@ impl ResourcePool {
 
     /// Set resource utilization
     pub fn set_utilization(&mut self, resource_type: ResourceType, utilization: f64) {
-        self.utilization.insert(resource_type, utilization.clamp(0.0, 100.0));
+        self.utilization
+            .insert(resource_type, utilization.clamp(0.0, 100.0));
         self.last_updated = chrono::Utc::now();
     }
 
@@ -409,9 +415,13 @@ impl ResourcePool {
     pub fn has_resource(&self, resource_type: &ResourceType) -> bool {
         self.resources.contains_key(resource_type)
     }
-    
+
     /// Calculate utilization for a specific resource
-    pub fn calculate_utilization(&self, resource_type: &ResourceType, used: &ResourceAmount) -> f64 {
+    pub fn calculate_utilization(
+        &self,
+        resource_type: &ResourceType,
+        used: &ResourceAmount,
+    ) -> f64 {
         if let Some(available) = self.get_resource(resource_type) {
             match (used, available) {
                 (ResourceAmount::Gigabytes(used_gb), ResourceAmount::Gigabytes(avail_gb)) => {
@@ -423,7 +433,7 @@ impl ResourcePool {
             0.0
         }
     }
-    
+
     /// Check if a specific amount is available
     pub fn is_available(&self, resource_type: &ResourceType, required: &ResourceAmount) -> bool {
         if let Some(available) = self.get_resource(resource_type) {
@@ -494,10 +504,16 @@ impl ResourcePool {
     }
 
     /// Calculate satisfaction ratio for a requirement
-    fn calculate_satisfaction_ratio(&self, required: &ResourceAmount, available: &ResourceAmount) -> f64 {
+    fn calculate_satisfaction_ratio(
+        &self,
+        required: &ResourceAmount,
+        available: &ResourceAmount,
+    ) -> f64 {
         match (required, available) {
             (ResourceAmount::Score(req), ResourceAmount::Score(avail)) => (avail / req).min(1.0),
-            (ResourceAmount::Gigabytes(req), ResourceAmount::Gigabytes(avail)) => (avail / req).min(1.0),
+            (ResourceAmount::Gigabytes(req), ResourceAmount::Gigabytes(avail)) => {
+                (avail / req).min(1.0)
+            }
             (ResourceAmount::Level(req), ResourceAmount::Level(avail)) => {
                 let req_score: f64 = (*req).into();
                 let avail_score: f64 = (*avail).into();
@@ -534,7 +550,10 @@ mod tests {
 
         assert_eq!(CapabilityLevel::from_numeric(1.0), CapabilityLevel::VeryLow);
         assert_eq!(CapabilityLevel::from_numeric(5.0), CapabilityLevel::Medium);
-        assert_eq!(CapabilityLevel::from_numeric(10.0), CapabilityLevel::Exceptional);
+        assert_eq!(
+            CapabilityLevel::from_numeric(10.0),
+            CapabilityLevel::Exceptional
+        );
         assert_eq!(CapabilityLevel::from_numeric(6.5), CapabilityLevel::High);
     }
 
@@ -569,7 +588,7 @@ mod tests {
     #[test]
     fn test_resource_pool_basic() {
         let mut pool = ResourcePool::new();
-        
+
         let memory_resource = ResourceAmount::new_gb(32.0);
         pool.add_resource(ResourceType::Memory, memory_resource);
 

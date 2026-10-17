@@ -939,19 +939,14 @@ impl SystemAnalyzer {
             // Add specific recommendations based on workload type
             if let Some(workload) = &workload_requirements.workload {
                 match workload {
-                    WorkloadType::AIInference => {
-                        if system_profile.gpu_score() < 6.0 {
-                            recommendations
-                                .push("Consider GPU acceleration for AI inference".to_string());
-                        }
+                    WorkloadType::AIInference if system_profile.gpu_score() < 6.0 => {
+                        recommendations
+                            .push("Consider GPU acceleration for AI inference".to_string());
                     }
-                    WorkloadType::MemoryIntensive => {
-                        if system_profile.memory_score() < 7.0 {
-                            recommendations.push(
-                                "Increase memory capacity for memory-intensive workloads"
-                                    .to_string(),
-                            );
-                        }
+                    WorkloadType::MemoryIntensive if system_profile.memory_score() < 7.0 => {
+                        recommendations.push(
+                            "Increase memory capacity for memory-intensive workloads".to_string(),
+                        );
                     }
                     _ => {}
                 }

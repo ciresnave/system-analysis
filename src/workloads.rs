@@ -1,8 +1,8 @@
 //! Workload definitions and modeling.
 
-use crate::resources::{ResourceRequirement, ResourceType, CapabilityLevel};
+use crate::error::{Result, SystemAnalysisError};
+use crate::resources::{CapabilityLevel, ResourceRequirement, ResourceType};
 use crate::types::SystemProfile;
-use crate::error::{SystemAnalysisError, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -10,22 +10,22 @@ use std::collections::HashMap;
 pub trait Workload: Send + Sync + std::fmt::Debug {
     /// Get the workload type
     fn workload_type(&self) -> WorkloadType;
-    
+
     /// Get resource requirements for this workload
     fn resource_requirements(&self) -> Vec<ResourceRequirement>;
-    
+
     /// Get estimated resource utilization
     fn estimated_utilization(&self) -> HashMap<ResourceType, f64>;
-    
+
     /// Get performance characteristics
     fn performance_characteristics(&self) -> PerformanceCharacteristics;
-    
+
     /// Get workload metadata
     fn metadata(&self) -> WorkloadMetadata;
-    
+
     /// Validate workload configuration
     fn validate(&self) -> crate::error::Result<()>;
-    
+
     /// Clone the workload (for trait objects)
     fn clone_workload(&self) -> Box<dyn Workload>;
 }
@@ -322,7 +322,7 @@ impl Workload for AIInferenceWorkload {
             ResourceRequirement::new(ResourceType::Memory)
                 .minimum_gb(memory_gb)
                 .recommended_gb(memory_gb * 1.5)
-                .critical()
+                .critical(),
         );
 
         // GPU requirement if preferred
@@ -338,7 +338,7 @@ impl Workload for AIInferenceWorkload {
             requirements.push(
                 ResourceRequirement::new(ResourceType::GPU)
                     .minimum_level(gpu_level)
-                    .preferred_vendor(Some("NVIDIA"))
+                    .preferred_vendor(Some("NVIDIA")),
             );
         }
 
@@ -351,17 +351,14 @@ impl Workload for AIInferenceWorkload {
             _ => CapabilityLevel::VeryLow,
         };
 
-        requirements.push(
-            ResourceRequirement::new(ResourceType::CPU)
-                .minimum_level(cpu_level)
-        );
+        requirements.push(ResourceRequirement::new(ResourceType::CPU).minimum_level(cpu_level));
 
         // Storage requirement
         let storage_gb = (self.model_params.parameters as f64 * 4.0 / 1_000_000_000.0) + 10.0; // Rough estimate
         requirements.push(
             ResourceRequirement::new(ResourceType::Storage)
                 .minimum_gb(storage_gb)
-                .recommended_gb(storage_gb * 2.0)
+                .recommended_gb(storage_gb * 2.0),
         );
 
         requirements
@@ -371,7 +368,11 @@ impl Workload for AIInferenceWorkload {
         let mut utilization = HashMap::new();
 
         // CPU utilization depends on whether GPU is available
-        let cpu_util = if self.model_params.prefer_gpu { 20.0 } else { 80.0 };
+        let cpu_util = if self.model_params.prefer_gpu {
+            20.0
+        } else {
+            80.0
+        };
         utilization.insert(ResourceType::CPU, cpu_util);
 
         // GPU utilization if preferred
@@ -392,8 +393,16 @@ impl Workload for AIInferenceWorkload {
     }
 
     fn performance_characteristics(&self) -> PerformanceCharacteristics {
-        let latency_ms = if self.model_params.prefer_gpu { 50.0 } else { 200.0 };
-        let throughput = if self.model_params.prefer_gpu { 20.0 } else { 5.0 };
+        let latency_ms = if self.model_params.prefer_gpu {
+            50.0
+        } else {
+            200.0
+        };
+        let throughput = if self.model_params.prefer_gpu {
+            20.0
+        } else {
+            5.0
+        };
 
         PerformanceCharacteristics {
             latency_profile: LatencyProfile {
@@ -413,7 +422,11 @@ impl Workload for AIInferenceWorkload {
                 scaling_efficiency: 0.8,
             },
             resource_patterns: ResourcePatterns {
-                cpu_pattern: if self.model_params.prefer_gpu { UsagePattern::Bursty } else { UsagePattern::Constant },
+                cpu_pattern: if self.model_params.prefer_gpu {
+                    UsagePattern::Bursty
+                } else {
+                    UsagePattern::Constant
+                },
                 memory_pattern: UsagePattern::Constant,
                 io_pattern: UsagePattern::Bursty,
                 network_pattern: UsagePattern::Bursty,
@@ -428,19 +441,19 @@ impl Workload for AIInferenceWorkload {
     fn validate(&self) -> crate::error::Result<()> {
         if self.model_params.parameters == 0 {
             return Err(crate::error::SystemAnalysisError::invalid_workload(
-                "Model parameters cannot be zero"
+                "Model parameters cannot be zero",
             ));
         }
 
         if self.model_params.memory_required <= 0.0 {
             return Err(crate::error::SystemAnalysisError::invalid_workload(
-                "Memory requirement must be positive"
+                "Memory requirement must be positive",
             ));
         }
 
         if self.model_params.compute_required <= 0.0 {
             return Err(crate::error::SystemAnalysisError::invalid_workload(
-                "Compute requirement must be positive"
+                "Compute requirement must be positive",
             ));
         }
 
@@ -527,7 +540,7 @@ impl ModelParameters {
         self.quantization = quant;
         // Adjust memory requirement based on quantization
         match quant {
-            QuantizationLevel::None => {},
+            QuantizationLevel::None => {}
             QuantizationLevel::Int8 => self.memory_required *= 0.5,
             QuantizationLevel::Int4 => self.memory_required *= 0.25,
             QuantizationLevel::Custom(_) => self.memory_required *= 0.5,
@@ -685,32 +698,32 @@ impl Default for TrainingConfig {
 }
 
 /// Trait for defining custom workload types
-/// 
+///
 /// Users can implement this trait to create custom workload definitions
 /// that integrate seamlessly with the system analysis framework.
 pub trait CustomWorkload: Send + Sync {
     /// Get the workload name/identifier
     fn name(&self) -> &str;
-    
+
     /// Get the workload description
     fn description(&self) -> &str;
-    
+
     /// Calculate resource requirements for this workload
     fn resource_requirements(&self) -> Vec<ResourceRequirement>;
-    
+
     /// Estimate performance on given system (0-10 scale)
     fn estimate_performance(&self, system: &SystemProfile) -> Result<f64>;
-    
+
     /// Get workload-specific metadata
     fn metadata(&self) -> HashMap<String, String> {
         HashMap::new()
     }
-    
+
     /// Validate workload configuration
     fn validate(&self) -> Result<()> {
         Ok(())
     }
-    
+
     /// Get recommended system upgrades for optimal performance
     fn recommended_upgrades(&self, _system: &SystemProfile) -> Vec<String> {
         Vec::new()
@@ -729,33 +742,33 @@ impl WorkloadRegistry {
             workloads: HashMap::new(),
         }
     }
-    
+
     /// Register a custom workload type
     pub fn register<W: CustomWorkload + 'static>(&mut self, workload: W) -> Result<()> {
         let name = workload.name().to_string();
-        
+
         // Validate the workload before registration
         workload.validate()?;
-        
+
         self.workloads.insert(name, Box::new(workload));
         Ok(())
     }
-    
+
     /// Get a registered workload by name
     pub fn get(&self, name: &str) -> Option<&dyn CustomWorkload> {
         self.workloads.get(name).map(|w| w.as_ref())
     }
-    
+
     /// List all registered workload names
     pub fn list_workloads(&self) -> Vec<&str> {
         self.workloads.keys().map(|s| s.as_str()).collect()
     }
-    
+
     /// Remove a workload from the registry
     pub fn unregister(&mut self, name: &str) -> bool {
         self.workloads.remove(name).is_some()
     }
-    
+
     /// Get the number of registered workloads
     pub fn count(&self) -> usize {
         self.workloads.len()
@@ -789,31 +802,31 @@ impl CustomWorkloadBuilder {
             performance_formula: None,
         }
     }
-    
+
     /// Set the workload description
     pub fn description(mut self, desc: impl Into<String>) -> Self {
         self.description = desc.into();
         self
     }
-    
+
     /// Add a resource requirement
     pub fn add_requirement(mut self, requirement: ResourceRequirement) -> Self {
         self.requirements.push(requirement);
         self
     }
-    
+
     /// Add metadata
     pub fn metadata(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.metadata.insert(key.into(), value.into());
         self
     }
-    
+
     /// Set performance estimation formula (for advanced users)
     pub fn performance_formula(mut self, formula: impl Into<String>) -> Self {
         self.performance_formula = Some(formula.into());
         self
     }
-    
+
     /// Build the custom workload
     pub fn build(self) -> BuiltCustomWorkload {
         BuiltCustomWorkload {
@@ -839,15 +852,15 @@ impl CustomWorkload for BuiltCustomWorkload {
     fn name(&self) -> &str {
         &self.name
     }
-    
+
     fn description(&self) -> &str {
         &self.description
     }
-    
+
     fn resource_requirements(&self) -> Vec<ResourceRequirement> {
         self.requirements.clone()
     }
-    
+
     fn estimate_performance(&self, system: &SystemProfile) -> Result<f64> {
         // If a custom formula is provided, we could evaluate it here
         // For now, use a simple heuristic based on system scores
@@ -855,17 +868,17 @@ impl CustomWorkload for BuiltCustomWorkload {
             // TODO: Implement formula evaluation
             // For now, fall back to default calculation
         }
-        
+
         // Simple performance estimation based on system scores
         let cpu_score = system.cpu_score() / 10.0;
         let gpu_score = system.gpu_score() / 10.0;
         let memory_score = system.memory_score() / 10.0;
         let storage_score = system.storage_score() / 10.0;
-        
+
         // Weight the scores based on requirements
         let mut total_weight = 0.0;
         let mut weighted_score = 0.0;
-        
+
         for req in &self.requirements {
             let (score, weight) = match req.resource_type {
                 crate::resources::ResourceType::CPU => (cpu_score, 1.0),
@@ -875,77 +888,76 @@ impl CustomWorkload for BuiltCustomWorkload {
                 crate::resources::ResourceType::Network => (0.5, 0.5), // Default network score
                 crate::resources::ResourceType::Custom(_) => (0.5, 0.5), // Default custom score
             };
-            
+
             weighted_score += score * weight;
             total_weight += weight;
         }
-        
+
         if total_weight == 0.0 {
             Ok(5.0) // Default score if no requirements
         } else {
             Ok((weighted_score / total_weight * 10.0).clamp(0.0, 10.0))
         }
     }
-    
+
     fn metadata(&self) -> HashMap<String, String> {
         self.metadata.clone()
     }
-    
+
     fn validate(&self) -> Result<()> {
         if self.name.is_empty() {
             return Err(SystemAnalysisError::invalid_workload(
-                "Workload name cannot be empty".to_string()
+                "Workload name cannot be empty".to_string(),
             ));
         }
-        
+
         if self.requirements.is_empty() {
             return Err(SystemAnalysisError::invalid_workload(
-                "Workload must have at least one resource requirement".to_string()
+                "Workload must have at least one resource requirement".to_string(),
             ));
         }
-        
+
         Ok(())
     }
-    
+
     fn recommended_upgrades(&self, system: &SystemProfile) -> Vec<String> {
         let mut upgrades = Vec::new();
-        
+
         for req in &self.requirements {
             match req.resource_type {
                 crate::resources::ResourceType::CPU => {
                     if system.cpu_score < 7.0 {
                         upgrades.push("Consider upgrading to a higher-performance CPU".to_string());
                     }
-                },
+                }
                 crate::resources::ResourceType::GPU => {
                     if system.gpu_score < 7.0 {
                         upgrades.push("Consider upgrading to a more powerful GPU".to_string());
                     }
-                },
+                }
                 crate::resources::ResourceType::Memory => {
                     let system_memory_gb = system.system_info.memory_info.total_ram as f64 / 1024.0; // Convert MB to GB
-                    if let crate::resources::ResourceAmount::Gigabytes(min_gb) = req.minimum {
-                        if min_gb > system_memory_gb {
-                            upgrades.push(format!(
-                                "Increase RAM to at least {min_gb:.1}GB"
-                            ));
-                        }
+                    if let crate::resources::ResourceAmount::Gigabytes(min_gb) = req.minimum
+                        && min_gb > system_memory_gb
+                    {
+                        upgrades.push(format!("Increase RAM to at least {min_gb:.1}GB"));
                     }
-                },
+                }
                 crate::resources::ResourceType::Storage => {
                     if system.storage_score < 7.0 {
-                        upgrades.push("Consider upgrading to faster storage (NVMe SSD)".to_string());
+                        upgrades
+                            .push("Consider upgrading to faster storage (NVMe SSD)".to_string());
                     }
-                },
+                }
                 crate::resources::ResourceType::Network => {
                     // Network upgrade suggestions would need network capability detection
-                },
+                }
                 crate::resources::ResourceType::Custom(_) => {
                     // Custom resource upgrade suggestions would be workload-specific
-                },
+                }
             }
         }
-        
+
         upgrades
     }
 }
@@ -955,37 +967,37 @@ impl CustomWorkload for BuiltCustomWorkload {
 pub struct AIModel {
     /// Model name
     pub name: String,
-    
+
     /// Model family/architecture
     pub architecture: String,
-    
+
     /// Number of parameters
     pub parameters: u64,
-    
+
     /// Model size in bytes (unquantized)
     pub size_in_bytes: u64,
-    
+
     /// Memory required in GB
     pub memory_required: f64,
-    
+
     /// Current quantization level
     pub quantization: QuantizationLevel,
-    
+
     /// Framework (TensorFlow, PyTorch, ONNX, etc.)
     pub framework: String,
-    
+
     /// Task type (classification, detection, generation, etc.)
     pub task: AITaskType,
-    
+
     /// Maximum input size (tokens, pixels, etc.)
     pub max_input_size: Option<u32>,
-    
+
     /// Maximum context length for sequence models
     pub max_context_length: Option<u32>,
-    
+
     /// Model version
     pub version: String,
-    
+
     /// Additional model metadata
     pub metadata: HashMap<String, String>,
 }
@@ -998,7 +1010,7 @@ impl AIModel {
         let size_bytes = params * 4;
         // Estimate memory required with overhead
         let memory_gb = (size_bytes as f64 / 1_073_741_824.0) * 1.2; // 20% overhead
-        
+
         Self {
             name: name.into(),
             architecture: architecture.into(),
@@ -1014,40 +1026,40 @@ impl AIModel {
             metadata: HashMap::new(),
         }
     }
-    
+
     /// Set the model framework
     pub fn with_framework(mut self, framework: impl Into<String>) -> Self {
         self.framework = framework.into();
         self
     }
-    
+
     /// Set the model task type
     pub fn with_task(mut self, task: AITaskType) -> Self {
         self.task = task;
         self
     }
-    
+
     /// Set the quantization level
     pub fn with_quantization(mut self, level: QuantizationLevel) -> Self {
         self.quantization = level;
-        
+
         // Adjust memory requirements based on quantization
         match level {
-            QuantizationLevel::None => {},
-            QuantizationLevel::Int8 => self.memory_required *= 0.5,  // Half precision
+            QuantizationLevel::None => {}
+            QuantizationLevel::Int8 => self.memory_required *= 0.5, // Half precision
             QuantizationLevel::Int4 => self.memory_required *= 0.25, // Quarter precision
             QuantizationLevel::Custom(ratio) => self.memory_required *= ratio,
         }
-        
+
         self
     }
-    
+
     /// Set maximum context length
     pub fn with_context_length(mut self, length: u32) -> Self {
         self.max_context_length = Some(length);
         self
     }
-    
+
     /// Add model metadata
     pub fn with_metadata(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.metadata.insert(key.into(), value.into());
@@ -1060,31 +1072,31 @@ impl AIModel {
 pub enum AITaskType {
     /// Text generation
     TextGeneration,
-    
+
     /// Image classification
     ImageClassification,
-    
+
     /// Object detection
     ObjectDetection,
-    
+
     /// Image segmentation
     ImageSegmentation,
-    
+
     /// Natural language processing
     NLP,
-    
+
     /// Speech recognition
     SpeechRecognition,
-    
+
     /// Speech synthesis
     SpeechSynthesis,
-    
+
     /// Translation
     Translation,
-    
+
     /// Recommendation
     Recommendation,
-    
+
     /// Other task types
     Other,
 }
@@ -1115,7 +1127,7 @@ mod tests {
 
         let workload = AIInferenceWorkload::new(model_params);
         let requirements = workload.resource_requirements();
-        
+
         assert!(!requirements.is_empty());
         assert_eq!(workload.workload_type(), WorkloadType::AIInference);
     }
@@ -1124,9 +1136,18 @@ mod tests {
     fn test_workload_type_display() {
         assert_eq!(format!("{}", WorkloadType::AIInference), "AI Inference");
         assert_eq!(format!("{}", WorkloadType::AIInference), "AI Inference");
-        assert_eq!(format!("{}", WorkloadType::DataProcessing), "Data Processing");
-        assert_eq!(format!("{}", WorkloadType::WebApplication), "Web Application");
-        assert_eq!(format!("{}", WorkloadType::Custom("Custom Task".to_string())), "Custom: Custom Task");
+        assert_eq!(
+            format!("{}", WorkloadType::DataProcessing),
+            "Data Processing"
+        );
+        assert_eq!(
+            format!("{}", WorkloadType::WebApplication),
+            "Web Application"
+        );
+        assert_eq!(
+            format!("{}", WorkloadType::Custom("Custom Task".to_string())),
+            "Custom: Custom Task"
+        );
     }
 
     #[test]
@@ -1136,7 +1157,7 @@ mod tests {
         let _int8 = QuantizationLevel::Int8;
         let _int4 = QuantizationLevel::Int4;
         let _custom = QuantizationLevel::Custom(0.5);
-        
+
         // Basic functionality test - check that all variants can be created
         assert_eq!(format!("{_none:?}"), "None");
         assert_eq!(format!("{_int8:?}"), "Int8");
@@ -1146,11 +1167,10 @@ mod tests {
 
     #[test]
     fn test_workload_validation() {
-        let model_params = ModelParameters::new()
-            .parameters(1_000_000_000);
+        let model_params = ModelParameters::new().parameters(1_000_000_000);
 
         let workload = AIInferenceWorkload::new(model_params);
-        
+
         // Validation should pass for reasonable parameters
         assert!(workload.validate().is_ok());
     }

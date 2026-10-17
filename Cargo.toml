@@ -1,6 +1,6 @@
 [package]
 name = "system-analysis"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2024"
 authors = ["Eric Evans <ciresnave@gmail.com>"]
 description = "A comprehensive Rust library for analyzing system capabilities, workload requirements, and optimal resource allocation"
@@ -11,7 +11,7 @@ homepage = "https://github.com/ciresnave/system-analysis"
 keywords = ["system", "analysis", "hardware", "workload", "performance"]
 categories = ["hardware-support", "development-tools", "science"]
 readme = "README.md"
-rust-version = "1.88"
+rust-version = "1.95"
 exclude = [
     "target/*",
     "Cargo.lock",
@@ -31,7 +31,7 @@ exclude = [
 
 [dependencies]
 # Async runtime
-tokio = { version = "1.0", features = ["full"] }
+tokio = { version = "1.53", features = ["full"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -45,18 +45,18 @@ anyhow = "1.0"
 num-traits = "0.2"
 
 # Parallel computation
-rayon = "1.7"
+rayon = "1.12"
 
 # Concurrent data structures
-dashmap = "6.1"
+dashmap = "6.2"
 
 # Logging and diagnostics
 tracing = "0.1"
 tracing-subscriber = "0.3"
 
 # System information - comprehensive hardware detection with AI accelerator support
-hardware-query = "0.2.0"  # AI-focused hardware detection with accelerator support
-sysinfo = "0.37.2"  # Fallback for compatibility during transition
+hardware-query = "0.3.0"  # AI-focused hardware detection with accelerator support
+sysinfo = "0.39"  # Fallback for compatibility during transition
 
 # Time handling
 chrono = { version = "0.4", features = ["serde"] }
@@ -65,22 +65,22 @@ chrono = { version = "0.4", features = ["serde"] }
 config = "0.15"
 
 # HTTP client for model data fetching
-reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+reqwest = { version = "0.13", features = ["json", "rustls"] }
 
 # HTML parsing for web scraping
-scraper = "0.24"
+scraper = "0.27"
 
 # URL handling
 url = "2.5"
-nvml-wrapper = "0.11.0"
+nvml-wrapper = "0.13.0"
 
 # Note: nvml-wrapper now included in hardware-query, no longer needed here
 
 [dev-dependencies]
 tokio-test = "0.4"
 pretty_assertions = "1.4"
-tempfile = "3.8"
-criterion = { version = "0.7", features = ["html_reports"] }
+tempfile = "3.27"
+criterion = { version = "0.8", features = ["html_reports"] }
 
 [features]
 default = ["enhanced-detection", "hardware-query-integration"]
