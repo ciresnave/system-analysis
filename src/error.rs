@@ -11,9 +11,9 @@ pub enum SystemAnalysisError {
 
     /// Error occurred while accessing system information
     #[error("System information access failed: {source}")]
-    SystemInfoError { 
+    SystemInfoError {
         #[source]
-        source: Box<dyn std::error::Error + Send + Sync>
+        source: Box<dyn std::error::Error + Send + Sync>,
     },
 
     /// Error occurred while calculating compatibility
@@ -57,9 +57,7 @@ impl SystemAnalysisError {
     /// Create a new system info error
     pub fn system_info(message: impl Into<String>) -> Self {
         Self::SystemInfoError {
-            source: Box::new(std::io::Error::other(
-                message.into()
-            )),
+            source: Box::new(std::io::Error::other(message.into())),
         }
     }
 

@@ -1,14 +1,14 @@
 //! Feedback system for real-time monitoring integration
-//! 
+//!
 //! This module provides hooks and interfaces for external monitoring systems
 //! to provide feedback about actual performance, allowing the system analysis
 //! to improve its predictions over time.
 
-use serde::{Deserialize, Serialize};
-use std::time::{SystemTime, UNIX_EPOCH};
-use std::collections::HashMap;
 use crate::error::SystemAnalysisError;
 use crate::types::SystemProfile;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Performance feedback from external monitoring systems
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -259,14 +259,15 @@ pub struct PredictionAccuracy {
 /// Trait for feedback collectors that external monitoring systems can implement
 pub trait FeedbackCollector: Send + Sync {
     /// Submit performance feedback
-    fn submit_feedback(&mut self, feedback: PerformanceFeedback) -> Result<(), SystemAnalysisError>;
-    
+    fn submit_feedback(&mut self, feedback: PerformanceFeedback)
+    -> Result<(), SystemAnalysisError>;
+
     /// Get aggregated feedback for a system/workload combination
     fn get_aggregation(&self, system_hash: &str, workload_id: &str) -> Option<FeedbackAggregation>;
-    
+
     /// Get prediction accuracy statistics
     fn get_prediction_accuracy(&self, system_hash: &str) -> Option<PredictionAccuracy>;
-    
+
     /// Clear old feedback data
     fn cleanup_old_data(&mut self, retention_days: u32) -> Result<u32, SystemAnalysisError>;
 }
@@ -285,7 +286,7 @@ impl InMemoryFeedbackCollector {
             aggregations: HashMap::new(),
         }
     }
-    
+
     /// Get current timestamp in seconds since Unix epoch
     fn current_timestamp() -> u64 {
         SystemTime::now()
@@ -293,16 +294,19 @@ impl InMemoryFeedbackCollector {
             .unwrap_or_default()
             .as_secs()
     }
-    
+
     /// Generate a hash key for system/workload combination
     fn generate_key(system_hash: &str, workload_id: &str) -> String {
         format!("{system_hash}:{workload_id}")
     }
-    
+
     /// Update aggregations when new feedback is received
     fn update_aggregations(&mut self, feedback: &PerformanceFeedback) {
-        let key = Self::generate_key(&feedback.system_profile.system_hash(), &feedback.workload_id);
-        
+        let key = Self::generate_key(
+            &feedback.system_profile.system_hash(),
+            &feedback.workload_id,
+        );
+
         // For now, just store the latest feedback as aggregation
         // In a real implementation, you'd calculate proper aggregations
         let aggregation = FeedbackAggregation {
@@ -311,7 +315,9 @@ impl InMemoryFeedbackCollector {
             sample_count: 1,
             avg_metrics: feedback.metrics.clone(),
             variance: feedback.metrics.clone(), // Placeholder
-            common_issues: feedback.issues.iter()
+            common_issues: feedback
+                .issues
+                .iter()
                 .map(|issue| (issue.clone(), 1))
                 .collect(),
             prediction_accuracy: PredictionAccuracy {
@@ -321,55 +327,61 @@ impl InMemoryFeedbackCollector {
                 overall_accuracy: 0.8,          // Placeholder
             },
         };
-        
+
         self.aggregations.insert(key, aggregation);
     }
 }
 
 impl FeedbackCollector for InMemoryFeedbackCollector {
-    fn submit_feedback(&mut self, feedback: PerformanceFeedback) -> Result<(), SystemAnalysisError> {
+    fn submit_feedback(
+        &mut self,
+        feedback: PerformanceFeedback,
+    ) -> Result<(), SystemAnalysisError> {
         // Validate feedback
         if feedback.session_id.is_empty() {
             return Err(SystemAnalysisError::invalid_workload(
-                "Session ID cannot be empty".to_string()
+                "Session ID cannot be empty".to_string(),
             ));
         }
-        
+
         if feedback.workload_id.is_empty() {
             return Err(SystemAnalysisError::invalid_workload(
-                "Workload ID cannot be empty".to_string()
+                "Workload ID cannot be empty".to_string(),
             ));
         }
-        
+
         // Update aggregations
         self.update_aggregations(&feedback);
-        
+
         // Store feedback
         self.feedback_history.push(feedback);
-        
+
         Ok(())
     }
-    
+
     fn get_aggregation(&self, system_hash: &str, workload_id: &str) -> Option<FeedbackAggregation> {
         let key = Self::generate_key(system_hash, workload_id);
         self.aggregations.get(&key).cloned()
     }
-    
+
     fn get_prediction_accuracy(&self, system_hash: &str) -> Option<PredictionAccuracy> {
         // Find aggregations for this system
-        let system_aggregations: Vec<_> = self.aggregations.values()
+        let system_aggregations: Vec<_> = self
+            .aggregations
+            .values()
             .filter(|agg| agg.system_hash == system_hash)
             .collect();
-        
+
         if system_aggregations.is_empty() {
             return None;
         }
-        
+
         // Calculate average accuracy across all workloads for this system
-        let total_accuracy: f64 = system_aggregations.iter()
+        let total_accuracy: f64 = system_aggregations
+            .iter()
             .map(|agg| agg.prediction_accuracy.overall_accuracy)
             .sum();
-        
+
         Some(PredictionAccuracy {
             latency_accuracy: Some(0.8),    // Placeholder
             throughput_accuracy: Some(0.8), // Placeholder
@@ -377,13 +389,14 @@ impl FeedbackCollector for InMemoryFeedbackCollector {
             overall_accuracy: total_accuracy / system_aggregations.len() as f64,
         })
     }
-    
+
     fn cleanup_old_data(&mut self, retention_days: u32) -> Result<u32, SystemAnalysisError> {
         let cutoff_timestamp = Self::current_timestamp() - (retention_days as u64 * 24 * 60 * 60);
         let initial_count = self.feedback_history.len();
-        
-        self.feedback_history.retain(|feedback| feedback.timestamp >= cutoff_timestamp);
-        
+
+        self.feedback_history
+            .retain(|feedback| feedback.timestamp >= cutoff_timestamp);
+
         let removed_count = initial_count - self.feedback_history.len();
         Ok(removed_count as u32)
     }
@@ -409,55 +422,62 @@ impl FeedbackIntegration {
             enabled: true,
         }
     }
-    
+
     /// Create feedback integration with in-memory collector
     pub fn with_memory_collector() -> Self {
         Self::new(Box::new(InMemoryFeedbackCollector::new()))
     }
-    
+
     /// Enable or disable feedback collection
     pub fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
-    
+
     /// Check if feedback collection is enabled
     pub fn is_enabled(&self) -> bool {
         self.enabled
     }
-    
+
     /// Submit performance feedback
-    pub fn submit_feedback(&mut self, feedback: PerformanceFeedback) -> Result<(), SystemAnalysisError> {
+    pub fn submit_feedback(
+        &mut self,
+        feedback: PerformanceFeedback,
+    ) -> Result<(), SystemAnalysisError> {
         if !self.enabled {
             return Ok(());
         }
-        
+
         self.collector.submit_feedback(feedback)
     }
-    
+
     /// Get feedback aggregation for improving predictions
-    pub fn get_aggregation(&self, system_hash: &str, workload_id: &str) -> Option<FeedbackAggregation> {
+    pub fn get_aggregation(
+        &self,
+        system_hash: &str,
+        workload_id: &str,
+    ) -> Option<FeedbackAggregation> {
         if !self.enabled {
             return None;
         }
-        
+
         self.collector.get_aggregation(system_hash, workload_id)
     }
-    
+
     /// Get prediction accuracy for a system
     pub fn get_prediction_accuracy(&self, system_hash: &str) -> Option<PredictionAccuracy> {
         if !self.enabled {
             return None;
         }
-        
+
         self.collector.get_prediction_accuracy(system_hash)
     }
-    
+
     /// Clean up old feedback data
     pub fn cleanup_old_data(&mut self, retention_days: u32) -> Result<u32, SystemAnalysisError> {
         if !self.enabled {
             return Ok(0);
         }
-        
+
         self.collector.cleanup_old_data(retention_days)
     }
 }
@@ -496,46 +516,51 @@ impl FeedbackBuilder {
             metadata: HashMap::new(),
         }
     }
-    
+
     /// Set the system profile
     pub fn system_profile(mut self, profile: SystemProfile) -> Self {
         self.system_profile = Some(profile);
         self
     }
-    
+
     /// Set latency measurement
     pub fn latency_ms(mut self, latency: f64) -> Self {
         self.metrics.latency_ms = Some(latency);
         self
     }
-    
+
     /// Set throughput measurement
     pub fn throughput_ops_per_sec(mut self, throughput: f64) -> Self {
         self.metrics.throughput_ops_per_sec = Some(throughput);
         self
     }
-    
+
     /// Set memory usage measurements
     pub fn memory_usage(mut self, peak_gb: f64, avg_gb: f64) -> Self {
         self.metrics.peak_memory_gb = Some(peak_gb);
         self.metrics.avg_memory_gb = Some(avg_gb);
         self
     }
-    
+
     /// Set CPU utilization
     pub fn cpu_utilization(mut self, percent: f64) -> Self {
         self.metrics.cpu_utilization_percent = Some(percent);
         self
     }
-    
+
     /// Set GPU utilization
     pub fn gpu_utilization(mut self, percent: f64) -> Self {
         self.metrics.gpu_utilization_percent = Some(percent);
         self
     }
-    
+
     /// Add a performance issue
-    pub fn add_issue(mut self, severity: IssueSeverity, category: IssueCategory, description: impl Into<String>) -> Self {
+    pub fn add_issue(
+        mut self,
+        severity: IssueSeverity,
+        category: IssueCategory,
+        description: impl Into<String>,
+    ) -> Self {
         self.issues.push(PerformanceIssue {
             severity,
             category,
@@ -548,21 +573,21 @@ impl FeedbackBuilder {
         });
         self
     }
-    
+
     /// Add metadata
     pub fn metadata(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.metadata.insert(key.into(), value.into());
         self
     }
-    
+
     /// Build the performance feedback
     pub fn build(self) -> Result<PerformanceFeedback, SystemAnalysisError> {
         let system_profile = self.system_profile.ok_or_else(|| {
             SystemAnalysisError::invalid_workload(
-                "System profile is required for feedback".to_string()
+                "System profile is required for feedback".to_string(),
             )
         })?;
-        
+
         Ok(PerformanceFeedback {
             session_id: self.session_id,
             timestamp: SystemTime::now()

@@ -410,11 +410,12 @@ impl DynamicModelDatabase {
     /// Check if cache should be refreshed
     fn should_refresh_cache(&self) -> bool {
         if let Ok(last_fetch) = self.last_fetch_time.read()
-            && let Some(last_time) = *last_fetch {
-                let cache_duration =
-                    chrono::Duration::seconds(self.config.cache_duration_seconds as i64);
-                return chrono::Utc::now() - last_time > cache_duration;
-            }
+            && let Some(last_time) = *last_fetch
+        {
+            let cache_duration =
+                chrono::Duration::seconds(self.config.cache_duration_seconds as i64);
+            return chrono::Utc::now() - last_time > cache_duration;
+        }
         true // Cache never populated
     }
 
