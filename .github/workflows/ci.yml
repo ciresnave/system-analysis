@@ -167,10 +167,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Install Rust 1.70.0
+    - name: Install Rust 1.95.0
       uses: dtolnay/rust-toolchain@v1
       with:
-        toolchain: 1.70.0
+        toolchain: 1.95.0
     
     - name: Build with MSRV
       run: cargo build --all-features
